@@ -2,29 +2,57 @@
 
 ## Dependency Analysis
 
-| Modules                   | Who use this                                                             | Important Dependency        |
-|---------------------------|--------------------------------------------------------------------------|-----------------------------|
-| frame/support             | frames                                                                   | sp-statemachine             |
-|---------------------------|--------------------------------------------------------------------------|-----------------------------|
-| primitives/state-manchine | frame/support                                                            | sp-core/storage(sp-storage) |
-|---------------------------|--------------------------------------------------------------------------|-----------------------------|
-| primitives/database       | client/db, client/api, utils/browser                                     | kvdb (parity-common)        |
-|---------------------------|--------------------------------------------------------------------------|-----------------------------|
-| primitives/storage        | client/service, client/api                                               | serde                       |
-|                           | frame/democracy, frame/staking, frame/transcation-payment, frame/vesting |                             |
-|                           | primitives/externalities, primitives/core                                |                             |
-|                           | utils/frame/rpc/support                                                  |                             |
+| Modules                   | Who use this                                                             | Important Dependency               |
+|---------------------------|--------------------------------------------------------------------------|------------------------------------|
+| frame/support             | frames                                                                   | sp-statemachine                    |
+|---------------------------|--------------------------------------------------------------------------|------------------------------------|
+| primitives/state-manchine | frame/support                                                            | sp-core/storage(sp-storage),       |
+|                           |                                                                          | trie-db(parity), trie-root(parity) |
+|---------------------------|--------------------------------------------------------------------------|------------------------------------|
+| primitives/database       | client/db, client/api, utils/browser                                     | kvdb (parity-common)               |
+|---------------------------|--------------------------------------------------------------------------|------------------------------------|
+| primitives/storage        | client/service, client/api                                               | serde                              |
+|                           | frame/democracy, frame/staking, frame/transcation-payment, frame/vesting |                                    |
+|                           | primitives/externalities, primitives/core                                |                                    |
+|                           | utils/frame/rpc/support                                                  |                                    |
+|---------------------------|--------------------------------------------------------------------------|------------------------------------|
+| primitives/trie           | client/service, client/api, client/executor, client/block-builder        |                                    |
+|                           | frame/session                                                            |                                    |
+|                           | primitives/io, primitives/state-machine                                  |                                    |
 
-On Chain Side
-- `client/api` -> `sp-core/storage` -> `primitives/storage`
+
+- On chain side: `frames` -> `frame/support` -> `sp-statemachine` -> `primitives/storage`, `trie-db`, `trie-root`
+- On client side: `client/api` -> `primitives/database` -> `kvdb`
 - `frame/support` handle the **key** generation
-- `sp-core/storage` export `sp-storage`
-- `primitives/storage` handle the **storage key** generation
-
-On Client Side
-- `client/api` -> `primitives/database` -> `primitives/storage`
+- `sp-core/storage` export as `sp-storage`, handle the **storage key** generation
 - `primitives/database` handle the **transcation** for key-value pair storage
 - `primitives/storage` handle the **storage key** generation
+- `primitives/state-machine` stores things into trie
+  - `proving_backend.rs` [ProvingBackendRecorder](https://github.com/paritytech/substrate/blob/master/primitives/state-machine/src/proving_backend.rs#L36)
+  - `trie_backend_essence.rs` [TrieBackendEssence](https://github.com/paritytech/substrate/blob/master/primitives/state-machine/src/trie_backend_essence.rs#L40)
+- `trie-db`, `trie-root` are included by `Trie`
+  - `trie-db` - a backend database to provide a persistent trie structure
+    - node storage as folllowing format
+    ```rust
+enum Node<H> {
+	/// Empty node.
+	Empty,
+	/// A leaf node contains the end of a key and a value.
+	/// This key is encoded from a `NibbleSlice`, meaning it contains
+	/// a flag indicating it is a leaf.
+	Leaf(NodeKey, DBValue),
+	/// An extension contains a shared portion of a key and a child node.
+	/// The shared portion is encoded from a `NibbleSlice` meaning it contains
+	/// a flag indicating it is an extension.
+	/// The child node is always a branch.
+	Extension(NodeKey, NodeHandle<H>),
+	/// A branch has up to 16 children and an optional value.
+	Branch(Box<[Option<NodeHandle<H>>; 16]>, Option<DBValue>),
+	/// Branch node with support for a nibble (to avoid extension node).
+	NibbledBranch(NodeKey, Box<[Option<NodeHandle<H>>; 16]>, Option<DBValue>),
+}
+    ```
+  - `trie-root` - a root calculated entirely in-memory
 
 ## DB Sample
 The db is generated by `substrate-node-template` at `93862bde52c77e045bdb6f60e9ba2269a6cad856` with dev chain option.
