@@ -7,3 +7,4 @@ description = "Substrate Storage Inspector"
 
 
 [dependencies]
+rocksdb = "0.14.0"
