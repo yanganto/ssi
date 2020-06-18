@@ -38,6 +38,7 @@ https://www.shawntabrizi.com/substrate/transparent-keys-in-substrate/
   - `proving_backend.rs` [ProvingBackendRecorder](https://github.com/paritytech/substrate/blob/master/primitives/state-machine/src/proving_backend.rs#L36)
   - `trie_backend_essence.rs` [TrieBackendEssence](https://github.com/paritytech/substrate/blob/master/primitives/state-machine/src/trie_backend_essence.rs#L40)
     - [`fn storage`](https://github.com/paritytech/substrate/blob/master/primitives/state-machine/src/trie_backend_essence.rs#L161)
+      - This function need "trie root" and "key" to get the value
 - `primitives/trie` - a warapper to use trie-db, this is the last module in `substrate` repo.
   - [`fn read_trie_value`](https://github.com/paritytech/substrate/blob/master/primitives/trie/src/lib.rs#L189)
 - `trie-db`, `trie-root` are included by `Trie`
@@ -47,6 +48,7 @@ https://www.shawntabrizi.com/substrate/transparent-keys-in-substrate/
     - [`fn get_with`](https://github.com/paritytech/trie/blob/master/trie-db/src/lib.rs#L205) with [`Query Trait`](https://github.com/paritytech/trie/blob/master/trie-db/src/lib.rs#L150)
     - [`fn get_with`](https://github.com/paritytech/trie/blob/master/trie-db/src/triedb.rs#L124) implementation for triedb 
     - trie-db query with `NibbleSlice` by [`Lookup` trait](https://github.com/paritytech/trie/blob/master/trie-db/src/lookup.rs#L41)
+
     ```rust
       pub type Result<T, H, E> = crate::rstd::result::Result<T, Box<TrieError<H, E>>>;
 
@@ -56,26 +58,29 @@ https://www.shawntabrizi.com/substrate/transparent-keys-in-substrate/
       ///     - Prefix is compelet part and nibble part
       let node_data = match self.db.get(&hash, key.mid(key_nibbles).left());
     ```
+
     - [`to_storeed`] of `NibbleSlice` reutrn NodeKey (usize, nibble::BackingByteVec) (the key removed the parts from parrents)
+
     ```rust
-enum Node<H> {
-	/// Empty node.
-	Empty,
-	/// A leaf node contains the end of a key and a value.
-	/// This key is encoded from a `NibbleSlice`, meaning it contains
-	/// a flag indicating it is a leaf.
-	Leaf(NodeKey, DBValue),
-	/// An extension contains a shared portion of a key and a child node.
-	/// The shared portion is encoded from a `NibbleSlice` meaning it contains
-	/// a flag indicating it is an extension.
-	/// The child node is always a branch.
-	Extension(NodeKey, NodeHandle<H>),
-	/// A branch has up to 16 children and an optional value.
-	Branch(Box<[Option<NodeHandle<H>>; 16]>, Option<DBValue>),
-	/// Branch node with support for a nibble (to avoid extension node).
-	NibbledBranch(NodeKey, Box<[Option<NodeHandle<H>>; 16]>, Option<DBValue>),
-}
+      enum Node<H> {
+        /// Empty node.
+        Empty,
+        /// A leaf node contains the end of a key and a value.
+        /// This key is encoded from a `NibbleSlice`, meaning it contains
+        /// a flag indicating it is a leaf.
+        Leaf(NodeKey, DBValue),
+        /// An extension contains a shared portion of a key and a child node.
+        /// The shared portion is encoded from a `NibbleSlice` meaning it contains
+        /// a flag indicating it is an extension.
+        /// The child node is always a branch.
+        Extension(NodeKey, NodeHandle<H>),
+        /// A branch has up to 16 children and an optional value.
+        Branch(Box<[Option<NodeHandle<H>>; 16]>, Option<DBValue>),
+        /// Branch node with support for a nibble (to avoid extension node).
+        NibbledBranch(NodeKey, Box<[Option<NodeHandle<H>>; 16]>, Option<DBValue>),
+      }
     ```
+
   - `trie-root` - a root calculated entirely in-memory
 
 ## DB Sample
