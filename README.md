@@ -1,7 +1,7 @@
 # SSI
 
-# Import Reference
-Before tracing, there is an article explaning the keys in substrate.
+# Important Reference
+Before tracing, there are articles explaning the keys in substrate.
 - https://www.shawntabrizi.com/substrate/transparent-keys-in-substrate/
 - https://www.shawntabrizi.com/substrate/substrate-storage-deep-dive/
 
@@ -34,6 +34,7 @@ Before tracing, there is an article explaning the keys in substrate.
 |                           | primitives/io, primitives/state-machine                                  |                                    |
 
 
+### Storage path
 - On chain side: `frames` -> `frame/support` -> `sp-statemachine` -> `primitives/storage`, `trie-db`, `trie-root`
 - On client side: `client/api` -> `primitives/database` -> `kvdb`
 - `frame/support` handle the **key** generation
@@ -104,9 +105,14 @@ Before tracing, there is an article explaning the keys in substrate.
 
   - `trie-root` - a root calculated entirely in-memory
 
+### hash of trie 
+  - the hash root of extrinsic can be caluculate by `extrinsics_root` and `extrinsics_data_root` in system frame
+  - the state trie root hash and extrinsics root hash are in block header
+  - the block header is handled in the client modules
+
 ### Conclusion
 To get things in the db and by pass the RPC, following parameters are needed:
-- state trie root hash
+- state trie root hash, extrinsics root hash
 - NibbleSlice struct, which is maded from key
 
 ## DB Sample
