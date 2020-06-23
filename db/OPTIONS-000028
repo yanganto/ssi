@@ -133,7 +133,7 @@
   inplace_update_support=false
   periodic_compaction_seconds=0
   disable_auto_compactions=false
-  report_bg_io_stats=false
+  report_bg_io_stats=true
   
 [TableOptions/BlockBasedTable "default"]
   pin_top_level_index_and_filter=true
@@ -936,86 +936,6 @@
   report_bg_io_stats=false
   
 [TableOptions/BlockBasedTable "col9"]
-  pin_top_level_index_and_filter=true
-  enable_index_compression=true
-  read_amp_bytes_per_bit=8589934592
-  format_version=2
-  block_align=false
-  metadata_block_size=4096
-  block_size_deviation=10
-  partition_filters=false
-  block_size=16384
-  index_block_restart_interval=1
-  no_block_cache=false
-  checksum=kCRC32c
-  whole_key_filtering=true
-  index_shortening=kShortenSeparators
-  data_block_index_type=kDataBlockBinarySearch
-  index_type=kBinarySearch
-  verify_compression=false
-  filter_policy=rocksdb.BuiltinBloomFilter
-  data_block_hash_table_util_ratio=0.750000
-  pin_l0_filter_and_index_blocks_in_cache=true
-  block_restart_interval=16
-  cache_index_and_filter_blocks_with_high_priority=true
-  cache_index_and_filter_blocks=true
-  hash_index_allow_collision=true
-  flush_block_policy_factory=FlushBlockBySizePolicyFactory
-  
-
-[CFOptions "col10"]
-  sample_for_compression=0
-  compaction_pri=kMinOverlappingRatio
-  merge_operator=nullptr
-  compaction_filter_factory=nullptr
-  memtable_factory=SkipListFactory
-  memtable_insert_with_hint_prefix_extractor=nullptr
-  comparator=leveldb.BytewiseComparator
-  target_file_size_base=67108864
-  max_sequential_skip_in_iterations=8
-  compaction_style=kCompactionStyleLevel
-  max_bytes_for_level_base=1048576
-  bloom_locality=0
-  write_buffer_size=262144
-  compression_per_level=
-  memtable_huge_page_size=0
-  max_successive_merges=0
-  arena_block_size=32768
-  memtable_whole_key_filtering=false
-  target_file_size_multiplier=1
-  max_bytes_for_level_multiplier_additional=1:1:1:1:1:1:1
-  num_levels=7
-  min_write_buffer_number_to_merge=2
-  max_write_buffer_number_to_maintain=0
-  max_write_buffer_number=6
-  compression=kSnappyCompression
-  level0_stop_writes_trigger=36
-  level0_slowdown_writes_trigger=20
-  compaction_filter=nullptr
-  level0_file_num_compaction_trigger=2
-  max_compaction_bytes=1677721600
-  compaction_options_universal={stop_style=kCompactionStopStyleTotalSize;compression_size_percent=-1;allow_trivial_move=false;max_merge_width=4294967295;max_size_amplification_percent=200;min_merge_width=2;size_ratio=1;}
-  memtable_prefix_bloom_size_ratio=0.000000
-  max_write_buffer_size_to_maintain=0
-  hard_pending_compaction_bytes_limit=274877906944
-  ttl=2592000
-  table_factory=BlockBasedTable
-  soft_pending_compaction_bytes_limit=68719476736
-  prefix_extractor=nullptr
-  bottommost_compression=kDisableCompressionOption
-  force_consistency_checks=false
-  paranoid_file_checks=false
-  compaction_options_fifo={allow_compaction=false;max_table_files_size=1073741824;}
-  max_bytes_for_level_multiplier=10.000000
-  optimize_filters_for_hits=false
-  level_compaction_dynamic_level_bytes=true
-  inplace_update_num_locks=10000
-  inplace_update_support=false
-  periodic_compaction_seconds=0
-  disable_auto_compactions=false
-  report_bg_io_stats=false
-  
-[TableOptions/BlockBasedTable "col10"]
   pin_top_level_index_and_filter=true
   enable_index_compression=true
   read_amp_bytes_per_bit=8589934592
