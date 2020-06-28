@@ -8,3 +8,4 @@ description = "Substrate Storage Inspector"
 
 [dependencies]
 rocksdb = "0.14.0"
+array-bytes = { git = "https://github.com/darwinia-network/darwinia-common.git" }
