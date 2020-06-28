@@ -1,35 +1,35 @@
-use array_bytes::fixed_hex_bytes_unchecked;
+use array_bytes::hex_bytes_unchecked;
 use rocksdb::{IteratorMode, Options, DB};
 
 fn main() {
     let mut opts = Options::default();
-    let db = DB::open_cf_for_read_only(
-        &opts,
-        "./db",
-        vec![
-            "default", "col0", "col1", "col2", "col3", "col4", "col5", "col6", "col7", "col8",
-            "col9", "col10",
-        ],
-        false,
-    )
-    .unwrap();
-    // match db.get(fixed_hex_bytes_unchecked!(
-    //     // "0x09c0a468b841682c4cf29297408fadba23329fb7c0c5c81163c40f28f5caa5cd",
-    //     "0xb8946898950fe86044251bf4b9e0a71c0304d119fdee180ab6129059c698dbd1",
-    //     32
-    // )) {
-    //     Ok(Some(value)) => println!("retrieved value {:?}", value),
-    //     Ok(None) => println!("value not found"),
-    //     Err(e) => println!("operational problem encountered: {}", e),
-    // }
-    let mut iter = db.iterator(IteratorMode::Start); // Always iterates forward
-    println!("{:?}", iter.next());
-    for (key, value) in iter {
-        println!("Saw {:?} {:?}", key, value);
-    }
-    iter = db.iterator(IteratorMode::End); // Always iterates backward
-    for (key, value) in iter {
-        println!("Saw {:?} {:?}", key, value);
+    let cfs = vec![
+        "default", "col0", "col1", "col2", "col3", "col4", "col5", "col6", "col7", "col8", "col9",
+        "col10",
+    ];
+    let db = DB::open_cf(&opts, "./db", cfs.clone()).unwrap();
+
+    for cf in cfs.iter() {
+        let h = db.cf_handle(cf).unwrap();
+        let iter = db.iterator_cf(h, IteratorMode::Start);
+        for (key, value) in iter {
+            if *key
+                == hex_bytes_unchecked(
+                    "0x09c0a468b841682c4cf29297408fadba23329fb7c0c5c81163c40f28f5caa5cd",
+                )[..]
+            {
+                println!("Got state root hash in column family {}", cf);
+                println!("Saw {:?} {:?}", key, value);
+            };
+            if *key
+                == hex_bytes_unchecked(
+                    "0xb8946898950fe86044251bf4b9e0a71c0304d119fdee180ab6129059c698dbd1",
+                )[..]
+            {
+                println!("Got extrinsic root hash in column family {}", cf);
+                println!("Saw {:?} {:?}", key, value);
+            };
+        }
     }
 }
 
