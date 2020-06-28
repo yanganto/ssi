@@ -8,4 +8,9 @@ description = "Substrate Storage Inspector"
 
 [dependencies]
 rocksdb = "0.14.0"
-array-bytes = { git = "https://github.com/darwinia-network/darwinia-common.git" }
+hex-literal = "0.2.1"
+
+
+hash-db = "0.15.2"
+# current version is 0.21 but build fail
+trie-db = "0.19.2"
