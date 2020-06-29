@@ -14,3 +14,5 @@ hex-literal = "0.2.1"
 hash-db = "0.15.2"
 # current version is 0.21 but build fail
 trie-db = "0.19.2"
+trie = { package="sp-trie", git = 'https://github.com/yanganto/substrate.git', branch='expose-hash-roots' }
+sp-std = { package="sp-std", git = 'https://github.com/yanganto/substrate.git', branch='expose-hash-roots' }
