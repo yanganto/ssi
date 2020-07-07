@@ -1,6 +1,11 @@
 # SSI
+**S**ubstrate **S**torage **I**nspector is a tool to get the data in the DB of substrate base block chain.
 
-# Important Reference
+## Usage
+
+:construction: :construction: :construction: Under development and nothing usable :construction: :construction: :construction:
+
+## Important Reference
 Before tracing, there are articles explaning the keys in substrate.
 - https://www.shawntabrizi.com/substrate/transparent-keys-in-substrate/
 - https://www.shawntabrizi.com/substrate/substrate-storage-deep-dive/
@@ -134,44 +139,44 @@ Before tracing, there are articles explaning the keys in substrate.
   - the hash root of extrinsic can be caluculate by `extrinsics_root` and `state_root` in system frame
   - the state trie root hash and extrinsics root hash are in block header
   - the block header is handled in the client modules
-  - the data structure use 0x80 as a seperator, which is invisible because it is not in ISO-IEC 5559 (ASCII) and not in ISO-IEC 5559-1 (EASCII) 
+  - the data structure use `0x80` as a seperator, which is invisible because it is not in ISO-IEC 5559 (ASCII) and not in ISO-IEC 5559-1 (EASCII) 
 
-  ```
-  // The raw data get from the state root hash
-  // 128 (0x80) is the seperator and contain 6 hash
-  // [
-  // 128,
-  // 44, 152,
-  // 128,
-  // 195, 162, 207, 123, 55, 18, 222, 77, 1, 22, 17, 199, 219, 213, 251, 6, 219, 238, 93, 205, 228, 57, 200, 241, 174, 67, 28, 169, 56, 67, 133, 227,
-  // 128,
-  // 163, 1, 165, 139, 133, 248, 193, 151, 249, 13, 162, 27, 86, 16, 212, 200, 254, 39, 224, 160, 190, 105, 225, 221, 19, 7, 246, 109, 6, 202, 107, 194,
-  // 128,
-  // 183, 207, 190, 0, 154, 221, 23, 122, 61, 23, 200, 77, 4, 206, 177, 67, 75, 70, 146, 247, 160, 60, 44, 1, 193, 112, 28, 200, 207, 30, 252, 13,
-  // 128,
-  // 169, 211, 94, 35, 16, 145, 205, 137, 159, 42, 39, 155, 8, 205, 23, 49, 194, 6, 0, 48, 123, 252, 28, 183, 111, 148, 14, 163, 184, 197, 136, 197,
-  // 128,
-  // 129, 101, 66, 162, 246, 165, 217, 92, 249, 6, 252, 250, 25, 216, 48, 38, 83, 144, 124, 58, 177, 32, 205, 61, 138, 219, 219, 23, 15, 86, 157, 170,
-  // 128,
-  // 14, 118, 239, 35, 99, 149, 106, 122, 22, 52, 150, 153, 107, 252, 84, 152, 196, 146, 67, 247, 231, 69, 60, 230, 252, 236, 175, 161, 113, 48, 23, 153
-  // ]
-  //
-  // Here is the decoded output, there are 6 child node have data
-  // [None, None, Hash, Hash, None, Hash, None, None, None, None, None, Hash, Hash, None, None, Hash]
-  // == child: Hash(4..36)       Hash([195, 162, 207, 123, 55, 18, 222, 77, 1, 22, 17, 199, 219, 213, 251, 6, 219, 238, 93, 205, 228, 57, 200, 241, 174, 67, 28, 169, 56, 67, 133, 227]),
-  // == child: Hash(37..69)      Hash([163, 1, 165, 139, 133, 248, 193, 151, 249, 13, 162, 27, 86, 16, 212, 200, 254, 39, 224, 160, 190, 105, 225, 221, 19, 7, 246, 109, 6, 202, 107, 194])
-  // == child: Hash(70..102)     Hash([183, 207, 190, 0, 154, 221, 23, 122, 61, 23, 200, 77, 4, 206, 177, 67, 75, 70, 146, 247, 160, 60, 44, 1, 193, 112, 28, 200, 207, 30, 252, 13])
-  // == child: Hash(103..135)    Hash([169, 211, 94, 35, 16, 145, 205, 137, 159, 42, 39, 155, 8, 205, 23, 49, 194, 6, 0, 48, 123, 252, 28, 183, 111, 148, 14, 163, 184, 197, 136, 197])
-  // == child: Hash(136..168)    Hash([129, 101, 66, 162, 246, 165, 217, 92, 249, 6, 252, 250, 25, 216, 48, 38, 83, 144, 124, 58, 177, 32, 205, 61, 138, 219, 219, 23, 15, 86, 157, 170])
-  // == child: Hash(169..201)    Hash([14, 118, 239, 35, 99, 149, 106, 122, 22, 52, 150, 153, 107, 252, 84, 152, 196, 146, 67, 247, 231, 69, 60, 230, 252, 236, 175, 161, 113, 48, 23, 153])
-  ```
+```
+The raw data get from the state root hash
+128 (0x80) is the seperator and contain 6 hash
+[
+128,
+44, 152,
+128,
+195, 162, 207, 123, 55, 18, 222, 77, 1, 22, 17, 199, 219, 213, 251, 6, 219, 238, 93, 205, 228, 57, 200, 241, 174, 67, 28, 169, 56, 67, 133, 227,
+128,
+163, 1, 165, 139, 133, 248, 193, 151, 249, 13, 162, 27, 86, 16, 212, 200, 254, 39, 224, 160, 190, 105, 225, 221, 19, 7, 246, 109, 6, 202, 107, 194,
+128,
+183, 207, 190, 0, 154, 221, 23, 122, 61, 23, 200, 77, 4, 206, 177, 67, 75, 70, 146, 247, 160, 60, 44, 1, 193, 112, 28, 200, 207, 30, 252, 13,
+128,
+169, 211, 94, 35, 16, 145, 205, 137, 159, 42, 39, 155, 8, 205, 23, 49, 194, 6, 0, 48, 123, 252, 28, 183, 111, 148, 14, 163, 184, 197, 136, 197,
+128,
+129, 101, 66, 162, 246, 165, 217, 92, 249, 6, 252, 250, 25, 216, 48, 38, 83, 144, 124, 58, 177, 32, 205, 61, 138, 219, 219, 23, 15, 86, 157, 170,
+128,
+14, 118, 239, 35, 99, 149, 106, 122, 22, 52, 150, 153, 107, 252, 84, 152, 196, 146, 67, 247, 231, 69, 60, 230, 252, 236, 175, 161, 113, 48, 23, 153
+]
+
+Here is the decoded output, there are 6 child node have data
+[None, None, Hash, Hash, None, Hash, None, None, None, None, None, Hash, Hash, None, None, Hash]
+== child: Hash(4..36)       Hash([195, 162, 207, 123, 55, 18, 222, 77, 1, 22, 17, 199, 219, 213, 251, 6, 219, 238, 93, 205, 228, 57, 200, 241, 174, 67, 28, 169, 56, 67, 133, 227]),
+== child: Hash(37..69)      Hash([163, 1, 165, 139, 133, 248, 193, 151, 249, 13, 162, 27, 86, 16, 212, 200, 254, 39, 224, 160, 190, 105, 225, 221, 19, 7, 246, 109, 6, 202, 107, 194])
+== child: Hash(70..102)     Hash([183, 207, 190, 0, 154, 221, 23, 122, 61, 23, 200, 77, 4, 206, 177, 67, 75, 70, 146, 247, 160, 60, 44, 1, 193, 112, 28, 200, 207, 30, 252, 13])
+== child: Hash(103..135)    Hash([169, 211, 94, 35, 16, 145, 205, 137, 159, 42, 39, 155, 8, 205, 23, 49, 194, 6, 0, 48, 123, 252, 28, 183, 111, 148, 14, 163, 184, 197, 136, 197])
+== child: Hash(136..168)    Hash([129, 101, 66, 162, 246, 165, 217, 92, 249, 6, 252, 250, 25, 216, 48, 38, 83, 144, 124, 58, 177, 32, 205, 61, 138, 219, 219, 23, 15, 86, 157, 170])
+== child: Hash(169..201)    Hash([14, 118, 239, 35, 99, 149, 106, 122, 22, 52, 150, 153, 107, 252, 84, 152, 196, 146, 67, 247, 231, 69, 60, 230, 252, 236, 175, 161, 113, 48, 23, 153])
+```
 
 ### Conclusion
 To get things in the db and by pass the RPC, following parameters are needed:
 - state trie root hash, extrinsics root hash
 - NibbleSlice struct, which is maded from key
 
-# RPC Calls for Root Hash
+## RPC Calls for Root Hash
 The reading the DB and inspect the data without less substrate dependency may be possible.  
 As aforementioned, the root hash is needed, and can be exposed by RPC.
 
@@ -180,8 +185,9 @@ Following is the RPC call with curl command to help you get the root hash.
 - ```curl -X POST -H "Content-Type: application/json"  --data '{"id":6,"jsonrpc":"2.0","method":"state_queryStateRoot","params":[]}' 127.0.0.1:9933```
 - ```curl -X POST -H "Content-Type: application/json"  --data '{"id":6,"jsonrpc":"2.0","method":"state_queryExtrinsicsRoot","params":[]}' 127.0.0.1:9933```
 
-# Column Family in RocksDB
-The state root hash is store as a key in Column Family `col1`. The column family meaning is shown as following code in substrate.
+## Storage Parameters in RockDB
+### Column Family
+The state root hash is store as a key in Column Family `col1`and the column family meanings are shown as following source code in Substrate.
 
 ```rust
 pub(crate) mod columns {
@@ -201,6 +207,6 @@ pub(crate) mod columns {
 }
 ```
 
-## DB Sample
+### DB Sample
 The db is generated by [substrate-node-template](https://github.com/yanganto/substrate-node-template/tree/expose-ext-root) with dev chain option. The state root hash is "0x09c0a468b841682c4cf29297408fadba23329fb7c0c5c81163c40f28f5caa5cd", and the extrinsics root hash is "0xb8946898950fe86044251bf4b9e0a71c0304d119fdee180ab6129059c698dbd1".
 
