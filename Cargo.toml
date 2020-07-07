@@ -9,10 +9,11 @@ description = "Substrate Storage Inspector"
 [dependencies]
 rocksdb = "0.14.0"
 hex-literal = "0.2.1"
-
-
+colored = "1.9"
 hash-db = "0.15.2"
+
 # current version is 0.21 but build fail
+# Issue open at https://github.com/paritytech/trie/issues/95
 trie-db = "0.19.2"
 trie = { package="sp-trie", git = 'https://github.com/yanganto/substrate.git', branch='expose-hash-roots' }
 sp-std = { package="sp-std", git = 'https://github.com/yanganto/substrate.git', branch='expose-hash-roots' }
