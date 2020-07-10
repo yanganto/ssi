@@ -6,26 +6,29 @@
 :construction: :construction: :construction: Under development and nothing usable :construction: :construction: :construction:
 
 
-## Solutions & workflow
+## Solutions & How it works
 
 ```
-|------------|----------------------------------------------------------------------------------------------------------------------|
-| Layer      | The Info extracted from the layer                                                                                    |
-| ========== | ==================================================================================================================== |
-| Runtime    | -> Calculated: Hash("System") ++ Hahs("Account") => 26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9 |
-|            | * Need to read the definition in decl_stroage!                                                                       |
-|------------|----------------------------------------------------------------------------------------------------------------------|
-| Backend    | -> Customized: RPC to get state root hash                                                                            |
-|            | * Modify the source code of target chain to expose the state root hash                                               |
-|------------|----------------------------------------------------------------------------------------------------------------------|
-| Trie DB    | -> Calculateed node position base on following picture                                                               |
-|            |                                                                                                                      |
-|------------|----------------------------------------------------------------------------------------------------------------------|
-| Rocks DB   | -> use state root hash -> get & decodde state root node -> get & decode children -> get value                        |
-|            |                                                                                                                      |
-|------------|----------------------------------------------------------------------------------------------------------------------|
+|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Layer        | The Info extracted from the layer                                                                                                                  |
+| ==========   | ====================================================================================================================                               |
+| Runtime      | -> Calculated: Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID                                                                 |
+|              | => 26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9 ++ Hash(Account_ID) ++ Account_ID                                              |
+|              | * Need to read the definition in decl_stroage! of system pallet                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend      | -> Customized: RPC to get state root hash                                                                                                          |
+|              | * Modify the source code of target chain to expose the state root hash                                                                             |
+|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Trie DB      | -> Calculateed node position base on following picture                                                                                             |
+|              |                                                                                                                                                    |
+|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Rocks DB     | -> use state root hash -> get & decodde state root node -> get & decode childern -> get value                                                      |
+|              |                                                                                                                                                    |
+|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 
 ```
+
+- ref: [decl stroage](https://github.com/paritytech/substrate/blob/master/frame/system/src/lib.rs#L414)of system pallet 
 ![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/trie.png)
 
 
