@@ -5,6 +5,30 @@
 
 :construction: :construction: :construction: Under development and nothing usable :construction: :construction: :construction:
 
+
+## Solutions & workflow
+
+```
+|------------|----------------------------------------------------------------------------------------------------------------------|
+| Layer      | The Info extracted from the layer                                                                                    |
+| ========== | ==================================================================================================================== |
+| Runtime    | -> Calculated: Hash("System") ++ Hahs("Account") => 26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9 |
+|            | * Need to read the definition in decl_stroage!                                                                       |
+|------------|----------------------------------------------------------------------------------------------------------------------|
+| Backend    | -> Customized: RPC to get state root hash                                                                            |
+|            | * Modify the source code of target chain to expose the state root hash                                               |
+|------------|----------------------------------------------------------------------------------------------------------------------|
+| Trie DB    | -> Calculateed node position base on following picture                                                               |
+|            |                                                                                                                      |
+|------------|----------------------------------------------------------------------------------------------------------------------|
+| Rocks DB   | -> use state root hash -> get & decodde state root node -> get & decode children -> get value                        |
+|            |                                                                                                                      |
+|------------|----------------------------------------------------------------------------------------------------------------------|
+
+```
+![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/trie.png)
+
+
 ## Important Reference
 Before tracing, there are articles explaning the keys in substrate.
 - https://www.shawntabrizi.com/substrate/transparent-keys-in-substrate/
@@ -13,6 +37,7 @@ Before tracing, there are articles explaning the keys in substrate.
 ## Dependency Analysis
 
 ```
+|---------------------------|--------------------------------------------------------------------------|------------------------------------|
 | Modules                   | Who use this                                                             | Important Dependency               |
 |---------------------------|--------------------------------------------------------------------------|------------------------------------|
 | frame/support             | frames                                                                   | sp-statemachine                    |
