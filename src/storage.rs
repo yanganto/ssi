@@ -198,3 +198,16 @@ pub fn setup_db_connection() -> (DB, Vec<&'static str>) {
     let db = DB::open_cf_for_read_only(&opts, "./db", cfs.clone(), false).unwrap();
     (db, cfs)
 }
+
+pub fn raw_query(db: &DB, cfs: &Vec<&str>, target_node_key: Vec<u8>) -> Option<Box<[u8]>> {
+    // TODO: refact this
+    for cf in cfs.iter() {
+        let h = db.cf_handle(cf).unwrap();
+        for (k, v) in db.iterator_cf(h, IteratorMode::Start) {
+            if *k == target_node_key[..] {
+                return Some(v);
+            }
+        }
+    }
+    None
+}

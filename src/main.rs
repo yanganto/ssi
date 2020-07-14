@@ -2,7 +2,7 @@ use colored::*;
 #[macro_use]
 use hex_literal::hex;
 use trie_db::{
-    node::{Node, NodeHandle, NodePlan},
+    node::{Node, NodeHandle, NodeHandlePlan, NodePlan},
     TrieDB, TrieDBNodeIterator, TrieLayout,
 };
 
@@ -10,7 +10,7 @@ mod logger;
 use logger::{debug, error, info, init_logger, trace, Logger};
 
 mod storage;
-use storage::{setup_db_connection, Hasher, Layout, SimpleTrie};
+use storage::{raw_query, setup_db_connection, Hasher, Layout, SimpleTrie};
 
 static LOGGER: Logger = Logger;
 
@@ -50,10 +50,11 @@ fn main() {
             _ => panic!("hex string uncorrect"),
         })
         .collect();
-    trace!("Storage Key Path: {:?}", storage_key);
+    debug!("Storage Key Path: {:?}", storage_key);
 
     {
         let (db, cfs) = setup_db_connection();
+        let (db2, _) = setup_db_connection();
         let simple_trie = SimpleTrie {
             db,
             cfs: cfs.clone(),
@@ -64,33 +65,46 @@ fn main() {
         let mut node_iter = TrieDBNodeIterator::new(&trie).unwrap();
         let mut path_iter = storage_key.iter();
 
-        let mut target_node_key = Some(state_root_hash);
+        let mut target_node_key = Some(state_root_hash.to_vec());
         let mut current_node = node_iter.next();
         loop {
-            trace!("current node: {:?}", current_node);
+            debug!("current node: {:?}", current_node);
             if current_node.is_none() {
                 break;
             }
             // TODO handle the 2nd unwrap
             let n = current_node.unwrap().unwrap();
-            trace!("Key({}): {:?}", n.1.unwrap().len(), n.1.unwrap());
-            if n.1.unwrap() == *target_node_key.unwrap() {
+            debug!("Key({}): {:?}", n.1.unwrap().len(), n.1.unwrap());
+            if n.1.unwrap() == *target_node_key.clone().unwrap() {
                 debug!("find node: {:?}", target_node_key);
                 let path = path_iter.next();
                 let owned_node = n.2.node();
                 let node_plan = n.2.node_plan();
+
+                let data = raw_query(&db2, &cfs, target_node_key.clone().unwrap());
+                error!("data for {:?}: {:?}", target_node_key, data);
+                let data = data.unwrap();
+
                 if let Some(p) = path {
                     match node_plan {
-                        NodePlan::NibbledBranch { children, .. }
-                        | NodePlan::Branch { children, .. } => {
+                        // NodePlan::NibbledBranch { children, .. }
+                        // | NodePlan::Branch { children, .. } => {
+                        NodePlan::NibbledBranch {
+                            children, partial, ..
+                        } => {
+                            error!("partial: {:?}", partial);
                             let c = children
                                 .into_iter()
                                 .nth(*p)
                                 .expect("branch node should have this child");
-                            // error!("ownnode: {:#?}", owned_node);
-                            error!("child: {:?}", c);
-                            // target_node_key = c.clone().unwrap().;
-                            // error!("new target node key: {:?}", target_node_key);
+                            debug!("child: {:?}", c);
+                            let h = match c.clone().unwrap() {
+                                NodeHandlePlan::Hash(r) | NodeHandlePlan::Inline(r) => {
+                                    data[r].to_vec()
+                                }
+                            };
+                            target_node_key = Some(h);
+                            error!("new target node key: {:?}", target_node_key);
                         }
                         _ => panic!("should not here"), //| nodeplan::nibbledbranch { children, value, partial }
                     }
