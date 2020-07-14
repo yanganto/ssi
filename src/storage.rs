@@ -195,6 +195,6 @@ pub fn setup_db_connection() -> (DB, Vec<&'static str>) {
     ];
 
     // TODO handle this unwarp
-    let db = DB::open_cf(&opts, "./db", cfs.clone()).unwrap();
+    let db = DB::open_cf_for_read_only(&opts, "./db", cfs.clone(), false).unwrap();
     (db, cfs)
 }

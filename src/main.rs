@@ -77,6 +77,7 @@ fn main() {
             if n.1.unwrap() == *target_node_key.unwrap() {
                 debug!("find node: {:?}", target_node_key);
                 let path = path_iter.next();
+                let owned_node = n.2.node();
                 let node_plan = n.2.node_plan();
                 if let Some(p) = path {
                     match node_plan {
@@ -86,10 +87,10 @@ fn main() {
                                 .into_iter()
                                 .nth(*p)
                                 .expect("branch node should have this child");
-                            error!("value: {:?}", value);
+                            // error!("ownnode: {:#?}", owned_node);
                             error!("child: {:?}", c);
                             // target_node_key = c.clone().unwrap().;
-                            error!("new target node key{:?}", target_node_key);
+                            // error!("new target node key: {:?}", target_node_key);
                         }
                         _ => panic!("should not here"), //| nodeplan::nibbledbranch { children, value, partial }
                     }
