@@ -17,3 +17,4 @@ hash-db = "0.15.2"
 trie-db = "0.19.2"
 trie = { package="sp-trie", git = 'https://github.com/yanganto/substrate.git', branch='expose-hash-roots' }
 sp-std = { package="sp-std", git = 'https://github.com/yanganto/substrate.git', branch='expose-hash-roots' }
+log = "0.4.8"

@@ -4,7 +4,4 @@ Cargo.lock
 /db
 /db/
 **/*.rs.bk
-
-
-
-
+debug_all_key.txt
