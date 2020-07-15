@@ -1,7 +1,7 @@
 /// Logger
 /// Customized logger
 use colored::*;
-pub use log::{debug, error, info, trace, Level};
+pub use log::{debug, error, info, trace, warn, Level};
 use log::{LevelFilter, Metadata, Record};
 
 pub struct Logger;

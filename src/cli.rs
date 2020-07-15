@@ -27,5 +27,17 @@ where
                 .number_of_values(1)
                 .help("change the log level, accept level: all, trace, debug, info, warn, error"),
         )
+        .arg(
+            Arg::with_name("exactly")
+                .short("e")
+                .long("exactly")
+                .help("get the value from the exactly node and not including children"),
+        )
+        .arg(
+            Arg::with_name("all node")
+                .short("a")
+                .long("all-node")
+                .help("return the velue of in all type of node not only in the leaf node"),
+        )
         .get_matches_from(itr)
 }

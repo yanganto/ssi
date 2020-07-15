@@ -254,6 +254,7 @@ pub fn map_pos_to_char(p: usize) -> char {
         13 => 'd',
         14 => 'e',
         15 => 'f',
+        16 => '.', // not for input
         _ => panic!("hex string uncorrect"),
     }
 }
