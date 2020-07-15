@@ -199,15 +199,61 @@ pub fn setup_db_connection() -> (DB, Vec<&'static str>) {
     (db, cfs)
 }
 
-pub fn raw_query(db: &DB, cfs: &Vec<&str>, target_node_key: Vec<u8>) -> Option<Box<[u8]>> {
-    // TODO: refact this
+pub fn raw_query(
+    db: &DB,
+    cfs: &Vec<&str>,
+    prefix: Prefix,
+    target_node_key: Vec<u8>,
+) -> Option<Box<[u8]>> {
+    let key: Vec<u8> = if prefix.0.len() > 0 || prefix.1.is_some() {
+        let mut k = if prefix.0.len() > 0 {
+            prefix.0.to_vec()
+        } else {
+            Vec::<u8>::new()
+        };
+        if let Some(p) = prefix.1 {
+            k.push(p);
+        }
+        k.append(&mut target_node_key.to_vec());
+        k
+    } else {
+        target_node_key.to_vec()
+    };
     for cf in cfs.iter() {
         let h = db.cf_handle(cf).unwrap();
         for (k, v) in db.iterator_cf(h, IteratorMode::Start) {
-            if *k == target_node_key[..] {
+            if *k == key[..] {
                 return Some(v);
             }
         }
     }
     None
+}
+
+pub fn map_char_to_pos(c: char) -> usize {
+    match c {
+        '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+            c.to_digit(10).unwrap() as usize
+        }
+        'a' | 'A' => 10,
+        'b' | 'B' => 11,
+        'c' | 'C' => 12,
+        'd' | 'D' => 13,
+        'e' | 'E' => 14,
+        'f' | 'F' => 15,
+        _ => panic!("hex string uncorrect"),
+    }
+}
+
+pub fn map_pos_to_char(p: usize) -> char {
+    match p {
+        0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 => format!("{}", p).chars().nth(0).unwrap(),
+        10 => 'a',
+        11 => 'b',
+        12 => 'c',
+        13 => 'd',
+        14 => 'e',
+        15 => 'f',
+        _ => panic!("hex string uncorrect"),
+    }
 }

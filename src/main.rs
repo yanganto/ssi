@@ -10,7 +10,9 @@ mod logger;
 use logger::{debug, error, info, init_logger, trace, Logger};
 
 mod storage;
-use storage::{raw_query, setup_db_connection, Hasher, Layout, SimpleTrie};
+use storage::{
+    map_char_to_pos, map_pos_to_char, raw_query, setup_db_connection, Hasher, Layout, SimpleTrie,
+};
 
 static LOGGER: Logger = Logger;
 
@@ -35,21 +37,7 @@ fn main() {
     debug!("State Root Hash: {:?}", state_root_hash);
     debug!("Storage Key: {}", storage_key);
 
-    let storage_key: Vec<usize> = storage_key
-        .chars()
-        .map(|c| match c {
-            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
-                c.to_digit(10).unwrap() as usize
-            }
-            'a' | 'A' => 10,
-            'b' | 'B' => 11,
-            'c' | 'C' => 12,
-            'd' | 'D' => 13,
-            'e' | 'E' => 14,
-            'f' | 'F' => 15,
-            _ => panic!("hex string uncorrect"),
-        })
-        .collect();
+    let storage_key: Vec<usize> = storage_key.chars().map(map_char_to_pos).collect();
     debug!("Storage Key Path: {:?}", storage_key);
 
     {
@@ -74,6 +62,7 @@ fn main() {
             }
             // TODO handle the 2nd unwrap
             let n = current_node.unwrap().unwrap();
+            error!("n: {:?}", n);
             debug!("Key({}): {:?}", n.1.unwrap().len(), n.1.unwrap());
             if n.1.unwrap() == *target_node_key.clone().unwrap() {
                 debug!("find node: {:?}", target_node_key);
@@ -81,7 +70,13 @@ fn main() {
                 let owned_node = n.2.node();
                 let node_plan = n.2.node_plan();
 
-                let data = raw_query(&db2, &cfs, target_node_key.clone().unwrap());
+                // TODO refactor this
+                let data = raw_query(
+                    &db2,
+                    &cfs,
+                    n.0.as_prefix(),
+                    target_node_key.clone().unwrap(),
+                );
                 error!("data for {:?}: {:?}", target_node_key, data);
                 let data = data.unwrap();
 
@@ -89,10 +84,8 @@ fn main() {
                     match node_plan {
                         // NodePlan::NibbledBranch { children, .. }
                         // | NodePlan::Branch { children, .. } => {
-                        NodePlan::NibbledBranch {
-                            children, partial, ..
-                        } => {
-                            error!("partial: {:?}", partial);
+                        NodePlan::NibbledBranch { children, .. } => {
+                            info!("Path to \"{}\"({})", map_pos_to_char(*p), p);
                             let c = children
                                 .into_iter()
                                 .nth(*p)
