@@ -24,7 +24,17 @@ impl log::Log for Logger {
     fn flush(&self) {}
 }
 
-pub fn init_logger(logger: &'static Logger) {
+pub fn init_logger(logger: &'static Logger, log_level: &str) {
     log::set_logger(logger).unwrap();
-    log::set_max_level(LevelFilter::Trace);
+    if log_level == "trace" || log_level == "all" {
+        log::set_max_level(LevelFilter::Trace);
+    } else if log_level == "debug" {
+        log::set_max_level(LevelFilter::Debug);
+    } else if log_level == "info" {
+        log::set_max_level(LevelFilter::Info);
+    } else if log_level == "warn" {
+        log::set_max_level(LevelFilter::Warn);
+    } else {
+        log::set_max_level(LevelFilter::Error);
+    }
 }

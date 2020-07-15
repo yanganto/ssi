@@ -1,3 +1,5 @@
+use std::env::args_os;
+
 use colored::*;
 #[macro_use]
 use hex_literal::hex;
@@ -14,6 +16,9 @@ use storage::{
     map_char_to_pos, map_pos_to_char, raw_query, setup_db_connection, Hasher, Layout, SimpleTrie,
 };
 
+mod cli;
+use cli::parse_args;
+
 static LOGGER: Logger = Logger;
 
 //	Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID
@@ -23,19 +28,22 @@ static LOGGER: Logger = Logger;
 //	 #50 state root hash is "0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"
 //	 #50 extrinsics root hash is "0x2772dcca7b706ca5c9692cb02e373d667ab269ea9085eb55e6900584b7c2c682"
 fn main() {
-    init_logger(&LOGGER);
+    let matches = parse_args(args_os());
+    init_logger(&LOGGER, matches.value_of("log").unwrap_or("error"));
+
     // In POC
     // We will get all system aacount info
     // Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID
     let storage_key = "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9";
-    let state_root_hash = &hex!("3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d");
+    let state_root_hash = &hex!("940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"); // #5
+                                                                                                     // let state_root_hash = &hex!("3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"); // #50
     let recurcive = true;
 
     // #50
     // [59, 85, 157, 87, 76, 74, 159, 19, 229, 93, 2, 86, 101, 95, 15, 113, 167, 10, 112, 55, 102, 34, 111, 16, 128, 248, 0, 34, 227, 156, 5, 125]
 
-    debug!("State Root Hash: {:?}", state_root_hash);
-    debug!("Storage Key: {}", storage_key);
+    info!("State Root Hash: {:?}", state_root_hash);
+    info!("Storage Key: {}", storage_key);
 
     let storage_key: Vec<usize> = storage_key.chars().map(map_char_to_pos).collect();
     debug!("Storage Key Path: {:?}", storage_key);
@@ -54,15 +62,22 @@ fn main() {
         let mut path_iter = storage_key.iter();
 
         let mut target_node_key = Some(state_root_hash.to_vec());
-        let mut current_node = node_iter.next();
         loop {
+            let current_node = node_iter.next();
             debug!("current node: {:?}", current_node);
             if current_node.is_none() {
                 break;
             }
+
             // TODO handle the 2nd unwrap
             let n = current_node.unwrap().unwrap();
-            error!("n: {:?}", n);
+
+            if n.1.is_none() {
+                // some node not inspect
+                let k = n.0.inner();
+                debug!("Ignored Key({}): {:?}", k.len(), k);
+                continue;
+            }
             debug!("Key({}): {:?}", n.1.unwrap().len(), n.1.unwrap());
             if n.1.unwrap() == *target_node_key.clone().unwrap() {
                 debug!("find node: {:?}", target_node_key);
@@ -77,27 +92,44 @@ fn main() {
                     n.0.as_prefix(),
                     target_node_key.clone().unwrap(),
                 );
-                error!("data for {:?}: {:?}", target_node_key, data);
+                debug!("data for {:?}: {:?}", target_node_key, data);
                 let data = data.unwrap();
 
                 if let Some(p) = path {
                     match node_plan {
-                        // NodePlan::NibbledBranch { children, .. }
-                        // | NodePlan::Branch { children, .. } => {
-                        NodePlan::NibbledBranch { children, .. } => {
+                        NodePlan::NibbledBranch {
+                            children,
+                            value,
+                            partial,
+                        } => {
                             info!("Path to \"{}\"({})", map_pos_to_char(*p), p);
+                            trace!("children: {:?}", children);
+                            trace!("value: {:?}", value);
+                            trace!("partial: {:?}", partial);
+
+                            for _ in 0..partial.len() {
+                                if let Some(p) = path_iter.next() {
+                                    info!("Path to \"{}\"({})\t(partial)", map_pos_to_char(*p), p);
+                                }
+                            }
+
                             let c = children
                                 .into_iter()
                                 .nth(*p)
                                 .expect("branch node should have this child");
                             debug!("child: {:?}", c);
-                            let h = match c.clone().unwrap() {
-                                NodeHandlePlan::Hash(r) | NodeHandlePlan::Inline(r) => {
-                                    data[r].to_vec()
-                                }
-                            };
-                            target_node_key = Some(h);
-                            error!("new target node key: {:?}", target_node_key);
+                            if let Some(c) = c.clone() {
+                                let h = match c {
+                                    NodeHandlePlan::Hash(r) | NodeHandlePlan::Inline(r) => {
+                                        data[r].to_vec()
+                                    }
+                                };
+                                target_node_key = Some(h);
+                                debug!("new target node key: {:?}", target_node_key);
+                            } else {
+                                error!("Path Error");
+                                break;
+                            }
                         }
                         _ => panic!("should not here"), //| nodeplan::nibbledbranch { children, value, partial }
                     }
@@ -113,8 +145,6 @@ fn main() {
             //        let node_plan = n.2.node_plan();
 
             // if current_node ==
-
-            current_node = node_iter.next();
         }
     }
 
