@@ -2,14 +2,10 @@
 /// implement import trait to read the storage
 use hash_db::{AsHashDB, HashDB, HashDBRef, Hasher as HashDBHasher, Prefix};
 use rocksdb::{IteratorMode, Options, DB};
-use sp_std;
 use trie::node_codec::NodeCodec;
-use trie_db::{
-    node::{Node, NodeHandle, NodePlan},
-    TrieDB, TrieDBNodeIterator, TrieLayout,
-};
+use trie_db::TrieLayout;
 
-use crate::logger::{debug, error, info, trace};
+use crate::logger::{debug, trace};
 
 pub mod blake2 {
     use hash_db::Hasher;
@@ -65,8 +61,8 @@ impl<'a> AsHashDB<Hasher, Vec<u8>> for SimpleTrie<'a> {
 impl<'a> HashDB<Hasher, Vec<u8>> for SimpleTrie<'a> {
     fn get(&self, key: &Hash, prefix: Prefix) -> Option<Vec<u8>> {
         trace!("get prefix: {:?}, key({}): {:?}", prefix, key.len(), key);
-        let key: Vec<u8> = if prefix.0.len() > 0 || prefix.1.is_some() {
-            let mut k = if prefix.0.len() > 0 {
+        let key: Vec<u8> = if !prefix.0.is_empty() || prefix.1.is_some() {
+            let mut k = if !prefix.0.is_empty() {
                 prefix.0.to_vec()
             } else {
                 Vec::<u8>::new()
@@ -130,8 +126,8 @@ impl<'a> HashDB<Hasher, Vec<u8>> for SimpleTrie<'a> {
 impl<'a> HashDBRef<Hasher, Vec<u8>> for SimpleTrie<'a> {
     fn get(&self, key: &Hash, prefix: Prefix) -> Option<Vec<u8>> {
         trace!("get prefix: {:?}, key({}): {:?}", prefix, key.len(), key);
-        let key: Vec<u8> = if prefix.0.len() > 0 || prefix.1.is_some() {
-            let mut k = if prefix.0.len() > 0 {
+        let key: Vec<u8> = if !prefix.0.is_empty() || prefix.1.is_some() {
+            let mut k = if !prefix.0.is_empty() {
                 prefix.0.to_vec()
             } else {
                 Vec::<u8>::new()
@@ -199,14 +195,9 @@ pub fn setup_db_connection() -> (DB, Vec<&'static str>) {
     (db, cfs)
 }
 
-pub fn raw_query(
-    db: &DB,
-    cfs: &Vec<&str>,
-    prefix: Prefix,
-    target_node_key: Vec<u8>,
-) -> Option<Box<[u8]>> {
-    let key: Vec<u8> = if prefix.0.len() > 0 || prefix.1.is_some() {
-        let mut k = if prefix.0.len() > 0 {
+pub fn raw_query(db: &DB, cfs: &[&str], prefix: Prefix, node_key: [u8; 32]) -> Option<Box<[u8]>> {
+    let key: Vec<u8> = if !prefix.0.is_empty() || prefix.1.is_some() {
+        let mut k = if !prefix.0.is_empty() {
             prefix.0.to_vec()
         } else {
             Vec::<u8>::new()
@@ -214,10 +205,10 @@ pub fn raw_query(
         if let Some(p) = prefix.1 {
             k.push(p);
         }
-        k.append(&mut target_node_key.to_vec());
+        k.append(&mut node_key.to_vec());
         k
     } else {
-        target_node_key.to_vec()
+        node_key.to_vec()
     };
     for cf in cfs.iter() {
         let h = db.cf_handle(cf).unwrap();
@@ -247,7 +238,7 @@ pub fn map_char_to_pos(c: char) -> usize {
 
 pub fn map_pos_to_char(p: usize) -> char {
     match p {
-        0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 => format!("{}", p).chars().nth(0).unwrap(),
+        0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 => format!("{}", p).chars().next().unwrap(),
         10 => 'a',
         11 => 'b',
         12 => 'c',

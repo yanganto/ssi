@@ -1,13 +1,10 @@
 use std::collections::HashMap;
 use std::env::args_os;
-use std::string::ToString;
 
-use colored::*;
-#[macro_use]
 use hex_literal::hex;
 use trie_db::{
-    node::{Node, NodeHandle, NodeHandlePlan, NodePlan},
-    TrieDB, TrieDBNodeIterator, TrieLayout,
+    node::{NodeHandlePlan, NodePlan},
+    TrieDB, TrieDBNodeIterator,
 };
 
 mod logger;
@@ -25,7 +22,7 @@ static LOGGER: Logger = Logger;
 
 type Data = Vec<u8>;
 
-fn parse_child_hash(c: NodeHandlePlan, data: &Box<[u8]>) -> Vec<u8> {
+fn parse_child_hash(c: NodeHandlePlan, data: &[u8]) -> Vec<u8> {
     match c {
         NodeHandlePlan::Hash(r) | NodeHandlePlan::Inline(r) => data[r].to_vec(),
     }
@@ -35,15 +32,27 @@ fn pretty_print(prefix: &str, map: HashMap<Vec<u8>, Vec<usize>>) -> String {
     let mut out = String::from("[\n");
     for (k, v) in map.iter() {
         out.push_str(&format!(
-            "\t[{}..{}]({:?}): {}\n",
+            "\t[{}..{}]({:?}): \t{}\n",
             k[0],
             k.last().unwrap_or(&0),
             k.len(),
-            v.into_iter().fold(format!("0x{}", prefix), |mut acc, x| {
+            v.iter().fold(format!("0x{}", prefix), |mut acc, x| {
                 acc.push(map_pos_to_char(*x));
                 acc
             })
         ));
+    }
+    out.push(']');
+    out
+}
+fn json_ouput(output: Vec<(String, Data)>) -> String {
+    let mut out = String::from("[");
+    let output_last_idx = output.len() - 1;
+    for (idx, (k, v)) in output.iter().enumerate() {
+        out.push_str(&format!(r#"{{"{}":{:?}}}"#, k, v));
+        if idx < output_last_idx {
+            out.push(',');
+        }
     }
     out.push(']');
     out
@@ -65,8 +74,8 @@ fn main() {
     // In POC
     // We will get all system aacount info
     // Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID
-    let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9";
-    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b";
+    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9";
+    let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b";
     let state_root_hash = &hex!("940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"); // #5
                                                                                                      // let state_root_hash = &hex!("3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"); // #50
 
@@ -101,7 +110,7 @@ fn main() {
 
         loop {
             let current_node = node_iter.next();
-            debug!("current node: {:?}", current_node);
+            trace!("current node: {:?}", current_node);
             if current_node.is_none() {
                 break;
             }
@@ -123,14 +132,11 @@ fn main() {
                 let path = path_iter.next();
 
                 // TODO refactor this
-                let data = raw_query(
-                    &db2,
-                    &cfs,
-                    n.0.as_prefix(),
-                    target_node_key.clone().unwrap(),
-                );
-                debug!("data for {:?}: {:?}", node_key, data);
-                let data = data.unwrap();
+                let data = raw_query(&db2, &cfs, n.0.as_prefix(), node_key);
+                trace!("prefix: {:?}, node key {:?}", n.0.as_prefix(), node_key);
+                let data = data
+                    .expect("node key error, open trace log for futher for finding the root cause");
+                debug!("data for {:?}: {} length bytes", node_key, data.len());
 
                 if let Some(p) = path {
                     let child = match node_plan {
@@ -159,8 +165,7 @@ fn main() {
                             }
 
                             children
-                                .iter()
-                                .nth(*p)
+                                .get(*p)
                                 .expect("branch node should have this child")
                                 .clone()
                         }
@@ -170,8 +175,7 @@ fn main() {
                             trace!("value: {:?}", value);
 
                             children
-                                .iter()
-                                .nth(*p)
+                                .get(*p)
                                 .expect("branch node should have this child")
                                 .clone()
                         }
@@ -202,51 +206,42 @@ fn main() {
                         break;
                     }
                 } else {
+                    // This end of path
                     match node_plan {
-                        NodePlan::Leaf { value, .. } => {
-                            debug!("Last node is leaf");
-                            output.push((
-                                hex::encode(target_node_key.clone().unwrap()),
-                                data.to_vec(),
-                            ));
+                        NodePlan::Leaf { .. } => {
+                            info!("Last node is leaf");
+                            output.push((format!("0x{}", storage_key_hash), data.to_vec()));
                             break;
                         }
-                        NodePlan::Branch { value, children } => {
-                            debug!("Last node is branch");
+                        NodePlan::Branch { children, .. } => {
                             if leaf_only {
-                                output
-                                    .push((hex::encode(target_node_key.clone().unwrap()), vec![]));
+                                output.push((format!("0x{}", storage_key_hash), vec![]));
                             } else {
-                                output.push((
-                                    hex::encode(target_node_key.clone().unwrap()),
-                                    data.to_vec(),
-                                ));
+                                output.push((format!("0x{}", storage_key_hash), data.to_vec()));
                             }
                             if including_children {
+                                info!("Last node is branch");
                                 for (idx, child) in children.iter().enumerate() {
                                     if let Some(c) = child {
                                         children_hash_to_path
                                             .insert(parse_child_hash(c.clone(), &data), vec![idx]);
                                     }
                                 }
+                            } else {
+                                error!("Last node is branch");
+                                break;
                             }
                         }
                         NodePlan::NibbledBranch {
-                            value,
-                            children,
-                            partial,
+                            children, partial, ..
                         } => {
-                            debug!("Last node is nibble branch");
                             if leaf_only {
-                                output
-                                    .push((hex::encode(target_node_key.clone().unwrap()), vec![]));
+                                output.push((format!("0x{}", storage_key_hash), vec![]));
                             } else {
-                                output.push((
-                                    hex::encode(target_node_key.clone().unwrap()),
-                                    data.to_vec(),
-                                ));
+                                output.push((format!("0x{}", storage_key_hash), data.to_vec()));
                             }
                             if including_children {
+                                info!("Last node is nibble branch");
                                 let partial_path = vec![16; partial.len()];
                                 for (idx, child) in children.iter().enumerate() {
                                     if let Some(c) = child {
@@ -256,14 +251,23 @@ fn main() {
                                             .insert(parse_child_hash(c.clone(), &data), path);
                                     }
                                 }
+                            } else {
+                                warn!("Last node is nibble branch");
+                                break;
                             }
                         }
                         NodePlan::Extension { partial, child } => {
-                            debug!("Last node is extension");
-                            children_hash_to_path.insert(
-                                parse_child_hash(child.clone(), &data),
-                                vec![16; partial.len()],
-                            );
+                            if including_children {
+                                debug!("Last node is extension");
+                                children_hash_to_path.insert(
+                                    parse_child_hash(child.clone(), &data),
+                                    vec![16; partial.len()],
+                                );
+                            } else {
+                                error!("Last node is extension");
+                                output.push((format!("0x{}", storage_key_hash), vec![]));
+                                break;
+                            }
                         }
                         NodePlan::Empty => {
                             warn!("Last node is empty");
@@ -272,32 +276,29 @@ fn main() {
                 }
             } else if including_children && children_hash_to_path.contains_key(&node_key.to_vec()) {
                 // TODO refactor this
-                let data = raw_query(
-                    &db2,
-                    &cfs,
-                    n.0.as_prefix(),
-                    target_node_key.clone().unwrap(),
-                );
-                debug!("data for {:?}: {:?}", node_key, data);
-                let data = if let Some(d) = data {
-                    d
-                } else {
-                    warn!("data for {:?} is None", node_key);
-                    continue;
-                };
-                let mut path_prefix = children_hash_to_path
+                let data = raw_query(&db2, &cfs, n.0.as_prefix(), node_key);
+                trace!("prefix: {:?}, node key {:?}", n.0.as_prefix(), node_key);
+                let data = data
+                    .expect("node key error, open trace log for futher for finding the root cause");
+                debug!("data for {:?}: {} length bytes", node_key, data.len());
+                let path_prefix = children_hash_to_path
                     .get(&node_key.to_vec())
                     .unwrap()
                     .clone();
 
                 match node_plan {
-                    NodePlan::Leaf { value, .. } => {
-                        debug!("Last node is leaf");
-                        output.push((hex::encode(target_node_key.clone().unwrap()), data.to_vec()));
-                        break;
+                    NodePlan::Leaf { .. } => {
+                        let trie_key = path_prefix.into_iter().fold(
+                            format!("0x{}", storage_key_hash),
+                            |mut acc, x| {
+                                acc.push(map_pos_to_char(x));
+                                acc
+                            },
+                        );
+                        info!("Find {} in 0x{} subtrie", trie_key, storage_key_hash);
+                        output.push((trie_key, data.to_vec()));
                     }
-                    NodePlan::Branch { value, children } => {
-                        debug!("Last node is branch");
+                    NodePlan::Branch { children, .. } => {
                         if !leaf_only {
                             output.push((
                                 hex::encode(target_node_key.clone().unwrap()),
@@ -316,11 +317,8 @@ fn main() {
                         }
                     }
                     NodePlan::NibbledBranch {
-                        value,
-                        children,
-                        partial,
+                        children, partial, ..
                     } => {
-                        debug!("Last node is nibble branch");
                         if !leaf_only {
                             output.push((
                                 hex::encode(target_node_key.clone().unwrap()),
@@ -341,7 +339,6 @@ fn main() {
                         }
                     }
                     NodePlan::Extension { partial, child } => {
-                        debug!("Last node is extension");
                         let mut path = path_prefix;
                         path.append(&mut vec![16; partial.len()]);
                         children_hash_to_path.insert(parse_child_hash(child.clone(), &data), path);
@@ -352,11 +349,10 @@ fn main() {
                 };
             }
         }
-        error!(
-            "children_hash_to_path: {}",
+        trace!(
+            "overall nodes in substrie: {}",
             pretty_print(storage_key_hash, children_hash_to_path)
         );
     }
-    println!("{:?}", output);
-    return;
+    println!("{}", json_ouput(output));
 }
