@@ -1,4 +1,8 @@
 # SSI
+
+
+[![Build Status](https://travis-ci.com/yanganto/ssi.svg?branch=master)](https://travis-ci.com/yanganto/ssi)
+
 **S**ubstrate **S**torage **I**nspector is a tool to get the data in the DB of substrate base block chain.
 
 ## Usage
@@ -19,8 +23,16 @@ ssi -r 0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e -k 26a
 ```
 
 ### Options
+Here is the required parameters to use this tool.
+``` 
+ssi --root-hash <root hash> --storage-key <storage key> <db path>
+``` 
 
-There are still some options to help you inspect the database.
+- `db path`: the path to the rocksdb used to storage data of the chain build in Substrate
+- `root hash`: the root hash for trie node in the chain build in Substrate
+- `storage key`: the storage key used in substrate runtime
+
+There are still some optional options to help you inspect the database.
 - `-e`, exactly mode, will no get the node in subtrie, only the data from the node exactly match the storage key.
 - `-l <trace/debug/info/warn/error>`, show logs with different level
   - `info` level: the node type of storage key

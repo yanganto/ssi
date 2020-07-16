@@ -1,0 +1,18 @@
+language: rust
+rust:
+  - stable
+  - nightly
+
+# Yes, use nightly as default
+matrix:
+  allow_failures:
+    - rust: stable
+  fast_finish: true
+cache: cargo
+
+jobs:
+  include:
+    - stage: "Test"
+      script: cargo test --verbose --all
+    - stage: "Build"
+      script: cargo build --verbose --all
