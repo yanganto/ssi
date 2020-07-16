@@ -37,7 +37,7 @@ where
             Arg::with_name("all node")
                 .short("a")
                 .long("all-node")
-                .help("return the velue of in all type of node not only in the leaf node"),
+                .help("return the value in all type of node not only in the leaf node"),
         )
         .get_matches_from(itr)
 }

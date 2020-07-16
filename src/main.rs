@@ -31,6 +31,24 @@ fn parse_child_hash(c: NodeHandlePlan, data: &Box<[u8]>) -> Vec<u8> {
     }
 }
 
+fn pretty_print(prefix: &str, map: HashMap<Vec<u8>, Vec<usize>>) -> String {
+    let mut out = String::from("[\n");
+    for (k, v) in map.iter() {
+        out.push_str(&format!(
+            "\t[{}..{}]({:?}): {}\n",
+            k[0],
+            k.last().unwrap_or(&0),
+            k.len(),
+            v.into_iter().fold(format!("0x{}", prefix), |mut acc, x| {
+                acc.push(map_pos_to_char(*x));
+                acc
+            })
+        ));
+    }
+    out.push(']');
+    out
+}
+
 //	Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID
 //	"26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9" ++ Hash(Account_ID) ++ Account_ID
 //	 #5 state root hash is "0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"
@@ -47,8 +65,8 @@ fn main() {
     // In POC
     // We will get all system aacount info
     // Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID
-    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9";
-    let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b";
+    let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9";
+    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b";
     let state_root_hash = &hex!("940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"); // #5
                                                                                                      // let state_root_hash = &hex!("3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"); // #50
 
@@ -111,7 +129,7 @@ fn main() {
                     n.0.as_prefix(),
                     target_node_key.clone().unwrap(),
                 );
-                debug!("data for {:?}: {:?}", target_node_key, data);
+                debug!("data for {:?}: {:?}", node_key, data);
                 let data = data.unwrap();
 
                 if let Some(p) = path {
@@ -121,7 +139,7 @@ fn main() {
                             value,
                             partial,
                         } => {
-                            info!(
+                            debug!(
                                 "Find path to a nibbleBranch \"{}\"({})",
                                 map_pos_to_char(*p),
                                 p
@@ -132,7 +150,7 @@ fn main() {
 
                             for _ in 0..partial.len() {
                                 if let Some(p) = path_iter.next() {
-                                    info!(
+                                    debug!(
                                         "Find path to \"{}\"({})\t(partial)",
                                         map_pos_to_char(*p),
                                         p
@@ -147,7 +165,7 @@ fn main() {
                                 .clone()
                         }
                         NodePlan::Branch { children, value } => {
-                            info!("Find path to a branch \"{}\"({})", map_pos_to_char(*p), p);
+                            debug!("Find path to a branch \"{}\"({})", map_pos_to_char(*p), p);
                             trace!("children: {:?}", children);
                             trace!("value: {:?}", value);
 
@@ -158,7 +176,7 @@ fn main() {
                                 .clone()
                         }
                         NodePlan::Extension { child, partial } => {
-                            info!(
+                            debug!(
                                 "Find path to an extension \"{}\"({})",
                                 map_pos_to_char(*p),
                                 p
@@ -167,7 +185,7 @@ fn main() {
 
                             for _ in 0..partial.len() {
                                 if let Some(p) = path_iter.next() {
-                                    info!("Path to \"{}\"({})\t(partial)", map_pos_to_char(*p), p);
+                                    debug!("Path to \"{}\"({})\t(partial)", map_pos_to_char(*p), p);
                                 }
                             }
                             Some(child.clone())
@@ -184,18 +202,17 @@ fn main() {
                         break;
                     }
                 } else {
-                    error!("after path end: {:?}", including_children);
                     match node_plan {
                         NodePlan::Leaf { value, .. } => {
-                            info!("Last node is leaf");
+                            debug!("Last node is leaf");
                             output.push((
                                 hex::encode(target_node_key.clone().unwrap()),
                                 data.to_vec(),
                             ));
-                            error!("leaf");
+                            break;
                         }
                         NodePlan::Branch { value, children } => {
-                            info!("Last node is branch");
+                            debug!("Last node is branch");
                             if leaf_only {
                                 output
                                     .push((hex::encode(target_node_key.clone().unwrap()), vec![]));
@@ -213,14 +230,13 @@ fn main() {
                                     }
                                 }
                             }
-                            error!("branch");
                         }
                         NodePlan::NibbledBranch {
                             value,
                             children,
                             partial,
                         } => {
-                            info!("Last node is nibble branch");
+                            debug!("Last node is nibble branch");
                             if leaf_only {
                                 output
                                     .push((hex::encode(target_node_key.clone().unwrap()), vec![]));
@@ -241,15 +257,13 @@ fn main() {
                                     }
                                 }
                             }
-                            error!("niddle branch");
                         }
                         NodePlan::Extension { partial, child } => {
-                            info!("Last node is extension");
+                            debug!("Last node is extension");
                             children_hash_to_path.insert(
                                 parse_child_hash(child.clone(), &data),
                                 vec![16; partial.len()],
                             );
-                            error!("extension");
                         }
                         NodePlan::Empty => {
                             warn!("Last node is empty");
@@ -257,14 +271,91 @@ fn main() {
                     };
                 }
             } else if including_children && children_hash_to_path.contains_key(&node_key.to_vec()) {
-                error!("something in tree");
-            }
+                // TODO refactor this
+                let data = raw_query(
+                    &db2,
+                    &cfs,
+                    n.0.as_prefix(),
+                    target_node_key.clone().unwrap(),
+                );
+                debug!("data for {:?}: {:?}", node_key, data);
+                let data = if let Some(d) = data {
+                    d
+                } else {
+                    warn!("data for {:?} is None", node_key);
+                    continue;
+                };
+                let mut path_prefix = children_hash_to_path
+                    .get(&node_key.to_vec())
+                    .unwrap()
+                    .clone();
 
-            // if including_children && children_hash_to_path.contains_key(n.1.unwrap()) {
-            //     error!("something in tree");
-            // }
+                match node_plan {
+                    NodePlan::Leaf { value, .. } => {
+                        debug!("Last node is leaf");
+                        output.push((hex::encode(target_node_key.clone().unwrap()), data.to_vec()));
+                        break;
+                    }
+                    NodePlan::Branch { value, children } => {
+                        debug!("Last node is branch");
+                        if !leaf_only {
+                            output.push((
+                                hex::encode(target_node_key.clone().unwrap()),
+                                data.to_vec(),
+                            ));
+                        }
+                        if including_children {
+                            for (idx, child) in children.iter().enumerate() {
+                                if let Some(c) = child {
+                                    let mut path = path_prefix.clone();
+                                    path.push(idx);
+                                    children_hash_to_path
+                                        .insert(parse_child_hash(c.clone(), &data), path);
+                                }
+                            }
+                        }
+                    }
+                    NodePlan::NibbledBranch {
+                        value,
+                        children,
+                        partial,
+                    } => {
+                        debug!("Last node is nibble branch");
+                        if !leaf_only {
+                            output.push((
+                                hex::encode(target_node_key.clone().unwrap()),
+                                data.to_vec(),
+                            ));
+                        }
+                        if including_children {
+                            let mut partial_path = vec![16; partial.len()];
+                            for (idx, child) in children.iter().enumerate() {
+                                if let Some(c) = child {
+                                    let mut path = path_prefix.clone();
+                                    path.append(&mut partial_path);
+                                    path.push(idx);
+                                    children_hash_to_path
+                                        .insert(parse_child_hash(c.clone(), &data), path);
+                                }
+                            }
+                        }
+                    }
+                    NodePlan::Extension { partial, child } => {
+                        debug!("Last node is extension");
+                        let mut path = path_prefix;
+                        path.append(&mut vec![16; partial.len()]);
+                        children_hash_to_path.insert(parse_child_hash(child.clone(), &data), path);
+                    }
+                    NodePlan::Empty => {
+                        warn!("Last node is empty");
+                    }
+                };
+            }
         }
-        error!("children_hash_to_path: {:?}", children_hash_to_path);
+        error!(
+            "children_hash_to_path: {}",
+            pretty_print(storage_key_hash, children_hash_to_path)
+        );
     }
     println!("{:?}", output);
     return;
