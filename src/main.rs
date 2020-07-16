@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::env::args_os;
 use std::ops::Range;
 
-use hex_literal::hex;
 use trie_db::{
     node::{NodeHandlePlan, NodePlan},
     TrieDB, TrieDBNodeIterator,
@@ -18,6 +17,9 @@ use storage::{
 
 mod cli;
 use cli::parse_args;
+
+mod errors;
+use errors::Error;
 
 static LOGGER: Logger = Logger;
 
@@ -54,6 +56,7 @@ fn pretty_print(prefix: &str, map: HashMap<Vec<u8>, Vec<usize>>) -> String {
     out.push(']');
     out
 }
+
 fn json_output(output: Vec<(String, Data)>) -> String {
     let mut out = String::from("[");
     let output_last_idx = output.len() - 1;
@@ -73,26 +76,53 @@ fn json_output(output: Vec<(String, Data)>) -> String {
 //	 #5 extrinsics root hash is "0xc1f78e951f26fe2c55e10f32b7bc97a227ee59274fabff18e5eabb6bee70c494"
 //	 #50 state root hash is "0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"
 //	 #50 extrinsics root hash is "0x2772dcca7b706ca5c9692cb02e373d667ab269ea9085eb55e6900584b7c2c682"
-fn main() {
+fn app() -> Result<(), Error> {
     let mut output: Vec<(String, Data)> = Vec::new();
     let matches = parse_args(args_os());
     init_logger(&LOGGER, matches.value_of("log").unwrap_or("error"));
     let including_children = !matches.is_present("exactly");
     let leaf_only = !matches.is_present("all node");
+    let storage_key_hash = matches
+        .value_of("storage key")
+        .expect("shorage key is required");
+    let raw_state_root_hash = matches
+        .value_of("root hash")
+        .expect("root hash is required");
+    let db_path = matches.value_of("db path").expect("db path is required");
+
+    let mut state_root_hash: [u8; 32] = Default::default();
+    if raw_state_root_hash.starts_with("0x") {
+        let tmp = hex::decode(raw_state_root_hash.strip_prefix("0x").unwrap())?;
+        if tmp.len() == 32 {
+            state_root_hash.copy_from_slice(&tmp[..]);
+        } else {
+            return Err(Error::OptionValueIncorrect(
+                "state root hash".to_string(),
+                "size is not correct".to_string(),
+            ));
+        }
+    } else {
+        return Err(Error::OptionValueIncorrect(
+            "state root hash".to_string(),
+            "0x prefix is not exist".to_string(),
+        ));
+    };
+    // let state_root_hash = &hex!("940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"); // #5
 
     // In POC
     // We will get all system aacount info
     // Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID
     // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9";
     // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b";
-    let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7";
-    let state_root_hash = &hex!("940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"); // #5
-                                                                                                     // let state_root_hash = &hex!("3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"); // #50
+    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7";
+    // let state_root_hash = &hex!("940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"); // #5
+    // let state_root_hash = &hex!("3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"); // #50
 
     // #50
     // [59, 85, 157, 87, 76, 74, 159, 19, 229, 93, 2, 86, 101, 95, 15, 113, 167, 10, 112, 55, 102, 34, 111, 16, 128, 248, 0, 34, 227, 156, 5, 125]
 
     info!("SSI Version: {}", env!("CARGO_PKG_VERSION"));
+    info!("db path: {}", db_path);
     info!("including_children: {}", including_children);
     info!("leaf only: {}", leaf_only);
     info!("State Root Hash: {:?}", state_root_hash);
@@ -101,15 +131,15 @@ fn main() {
     let storage_key: Vec<usize> = storage_key_hash.chars().map(map_char_to_pos).collect();
     debug!("Storage Key Path: {:?}", storage_key);
 
-    let (db, cfs) = setup_db_connection();
-    let (db2, _) = setup_db_connection();
+    let (db, cfs) = setup_db_connection(db_path);
+    let (db2, _) = setup_db_connection(db_path);
     let simple_trie = SimpleTrie {
         db,
         cfs: cfs.clone(),
     };
 
     // TODO: handle unwarp here
-    let trie = TrieDB::<Layout<Hasher>>::new(&simple_trie, state_root_hash).unwrap();
+    let trie = TrieDB::<Layout<Hasher>>::new(&simple_trie, &state_root_hash).unwrap();
     let mut node_iter = TrieDBNodeIterator::new(&trie).unwrap();
     let mut path_iter = storage_key.iter();
 
@@ -376,4 +406,11 @@ fn main() {
         pretty_print(storage_key_hash, children_hash_to_path)
     );
     println!("{}", json_output(output));
+    Ok(())
+}
+
+fn main() {
+    if let Err(e) = app() {
+        println!("{}", e);
+    }
 }

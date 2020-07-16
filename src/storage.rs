@@ -183,7 +183,7 @@ impl<H: HashDBHasher> TrieLayout for Layout<H> {
     type Hash = H;
     type Codec = NodeCodec<Self::Hash>;
 }
-pub fn setup_db_connection() -> (DB, Vec<&'static str>) {
+pub fn setup_db_connection(db_path: &str) -> (DB, Vec<&'static str>) {
     let opts = Options::default();
     let cfs = vec![
         "default", "col0", "col1", "col2", "col3", "col4", "col5", "col6", "col7", "col8", "col9",
@@ -191,7 +191,7 @@ pub fn setup_db_connection() -> (DB, Vec<&'static str>) {
     ];
 
     // TODO handle this unwarp
-    let db = DB::open_cf_for_read_only(&opts, "./db", cfs.clone(), false).unwrap();
+    let db = DB::open_cf_for_read_only(&opts, db_path, cfs.clone(), false).unwrap();
     (db, cfs)
 }
 
