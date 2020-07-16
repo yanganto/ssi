@@ -3,8 +3,36 @@
 
 ## Usage
 
-:construction: :construction: :construction: Under development and nothing usable :construction: :construction: :construction:
+Given the `state root hash`, `storage key`, `rocks db path`, you can inspect the data in the DB which is used in the chain build based on Substrate.
+The data will show in the node or in the nodes of a subtrie.
 
+
+### Sample Commands
+
+Here is an example help you can use in query the data in Rocks DB with System pallet Account storage at block #50
+```
+ssi -r 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d -k 26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9 ./db
+```
+Also you can use following command to inspect the data all nodes in the subtrie at block #5
+```
+ssi -r 0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e -k 26aa394eea5630e07c48ae0c9558cef7 ./db
+```
+
+### Options
+
+There are still some options to help you inspect the database.
+- `-e`, exactly mode, will no get the node in subtrie, only the data from the node exactly match the storage key.
+- `-l <trace/debug/info/warn/error>`, show logs with different level
+  - `info` level: the node type of storage key
+  - `debug` level: the path to trace the trie
+  - `trace` level: use for developing
+  - `warn` level: show the error if the database incorrect or damage or some node is incorrect
+  - `error` level: show the error of this tool
+
+
+### Snapshop
+
+![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/demo.png)
 
 ## Solutions & How it works
 
@@ -29,6 +57,7 @@
 ```
 
 - ref: [decl stroage](https://github.com/paritytech/substrate/blob/master/frame/system/src/lib.rs#L414)of system pallet 
+
 ![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/trie.png)
 
 
