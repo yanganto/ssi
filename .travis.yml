@@ -3,6 +3,10 @@ rust:
   - stable
   - nightly
 
+before_install:
+  - sudo apt-get -y update
+  - sudo apt-get install -y
+
 # Yes, use nightly as default
 matrix:
   allow_failures:
@@ -14,5 +18,7 @@ jobs:
   include:
     - stage: "Test"
       script: cargo test --verbose --all
+    - stage: "Test"
+      script: test.sh
     - stage: "Build"
       script: cargo build --verbose --all
