@@ -5,3 +5,4 @@ Cargo.lock
 /db/
 **/*.rs.bk
 debug_all_key.txt
+plan.org

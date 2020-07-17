@@ -1,6 +1,7 @@
 // Comand Line Handle
 
-use clap::{App, Arg, ArgMatches};
+pub use clap::ArgMatches;
+use clap::{App, Arg};
 use std::ffi::OsString;
 
 // use crate::character_map::SYMBOL_MAP;
@@ -51,14 +52,101 @@ where
                 .short("k")
                 .long("storage-key")
                 .takes_value(true)
+				.conflicts_with("pallet")
+				.conflicts_with("field")
+				.conflicts_with("twox 64 concat")
+				.conflicts_with("black2 128 concat")
+				.conflicts_with("twox 64 concat 2nd")
+				.conflicts_with("black2 128 concat 2nd")
                 .help("The storage key you want to inspect, it is okay to use only prefix part of storage key, ex: 6aa394eea5630e07c48ae0c9558cef7"),
+        )
+        .arg(
+            Arg::with_name("pallet")
+                .short("P")
+                .long("pallet")
+                .takes_value(true)
+				.conflicts_with("storage key")
+                .help("The pallet name used for generate storage key you want to inspect, ex: System"),
+        )
+        .arg(
+            Arg::with_name("field")
+                .short("F")
+                .long("field")
+                .takes_value(true)
+				.conflicts_with("storage key")
+                .help("The storage field name used for generate storage key you want to inspect, ex: Account"),
+        )
+        .arg(
+            Arg::with_name("twox 64 concat")
+                .short("T")
+                .long("twox-64-cat")
+                .takes_value(true)
+				.conflicts_with("storage key")
+				.conflicts_with("black2 128 concat")
+				.conflicts_with("identity")
+                .help("The twox 64 hash and concated the key used for generate storage key you want to inspect"),
+        )
+        .arg(
+            Arg::with_name("black2 128 concat")
+                .short("B")
+                .long("blk2-128-cat")
+                .takes_value(true)
+				.conflicts_with("storage key")
+				.conflicts_with("twox 64 concat")
+				.conflicts_with("identity")
+                .help("The black2 128 hash and concated the key used for generate storage key you want to inspect"),
+        )
+        .arg(
+            Arg::with_name("identity")
+                .short("I")
+                .long("id")
+                .takes_value(true)
+				.conflicts_with("storage key")
+				.conflicts_with("twox 64 concat")
+				.conflicts_with("black2 128 concat")
+                .help("The identity key used for generate storage key you want to inspect"),
+        )
+        .arg(
+            Arg::with_name("twox 64 concat 2nd")
+                .short("t")
+                .long("twox-64-cat-2")
+                .takes_value(true)
+				.conflicts_with("storage key")
+				.conflicts_with("black2 128 concat 2nd")
+				.conflicts_with("identity 2nd")
+                .help("The twox 64 hash and concated the 2nd key used for generate double map storage key you want to inspect"),
+        )
+        .arg(
+            Arg::with_name("black2 128 concat 2nd")
+                .short("b")
+                .long("blk2-128-cat-2")
+                .takes_value(true)
+				.conflicts_with("storage key")
+				.conflicts_with("twox 64 concat 2nd")
+				.conflicts_with("identity 2nd")
+                .help("The black2 128 hash and concat the key use for generate double map storage key you want to inspect"),
+        )
+        .arg(
+            Arg::with_name("identity 2nd")
+                .short("i")
+                .long("id-2")
+                .takes_value(true)
+				.conflicts_with("storage key")
+				.conflicts_with("twox 64 concat 2nd")
+				.conflicts_with("black2 128 concat 2nd")
+                .help("The identity key used for generate double map storage key you want to inspect"),
+        )
+        .arg(
+            Arg::with_name("summarize output")
+                .short("s")
+                .long("summarize")
+                .help("summarize the data of node to \"hash:{twox_hash_of_data}, length: {length}, Leaf: {true/false}\""),
         )
         .arg(
             Arg::with_name("db path")
                 .help("the db path to Rocks DB")
                 .index(1)
                 .requires("root hash")
-                .requires("storage key")
                 .required(true),
         )
         .get_matches_from(itr)

@@ -1,18 +1,13 @@
 language: rust
-rust:
-  - stable
-  - beta
-  - nightly
-matrix:
-  allow_failures:
-    - rust: nightly
-    - rust: stable
-  fast_finish: true
-cache: cargo
+rust: nightly
+
+before_install:
+  - sudo apt-get -y update
+  - sudo apt-get install -y jq cmake pkg-config libssl-dev git gcc build-essential clang libclang-dev
 
 jobs:
   include:
-    - stage: "Test"
-      script: cargo test --verbose --all
-    - stage: "Build"
+    - stage: Build
       script: cargo build --verbose --all
+    - stage: Cli Test
+      script: ./test.sh

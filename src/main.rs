@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::env::args_os;
 use std::ops::Range;
 
+use sp_core::hashing::{blake2_128, blake2_256, twox_128, twox_64};
 use trie_db::{
     node::{NodeHandlePlan, NodePlan},
     TrieDB, TrieDBNodeIterator,
@@ -16,14 +17,14 @@ use storage::{
 };
 
 mod cli;
-use cli::parse_args;
+use cli::{parse_args, ArgMatches};
 
 mod errors;
 use errors::Error;
 
 static LOGGER: Logger = Logger;
 
-type Data = Vec<u8>;
+type Data = (Vec<u8>, bool);
 
 fn parse_child_hash(c: NodeHandlePlan, data: &[u8]) -> Vec<u8> {
     match c {
@@ -57,11 +58,26 @@ fn pretty_print(prefix: &str, map: HashMap<Vec<u8>, Vec<usize>>) -> String {
     out
 }
 
-fn json_output(output: Vec<(String, Data)>) -> String {
+fn json_output(output: Vec<(String, Data)>, summary: bool) -> String {
     let mut out = String::from("[");
     let output_last_idx = output.len() - 1;
     for (idx, (k, v)) in output.iter().enumerate() {
-        out.push_str(&format!(r#"{{"{}":{:?}}}"#, k, v));
+        if summary {
+            let hash = if v.0.len() == 32 {
+                hex::encode(&v.0)
+            } else {
+                hex::encode(blake2_256(&v.0))
+            };
+            out.push_str(&format!(
+                r#"{{"{}":{{"hash": "0x{}", "length": {}, "leaf": {}}}}}"#,
+                k,
+                hash,
+                v.0.len(),
+                v.1
+            ));
+        } else {
+            out.push_str(&format!(r#"{{"{}":{:?}}}"#, k, v.0));
+        }
         if idx < output_last_idx {
             out.push(',');
         }
@@ -70,25 +86,125 @@ fn json_output(output: Vec<(String, Data)>) -> String {
     out
 }
 
-//	Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID
-//	"26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9" ++ Hash(Account_ID) ++ Account_ID
-//	 #5 state root hash is "0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"
-//	 #5 extrinsics root hash is "0xc1f78e951f26fe2c55e10f32b7bc97a227ee59274fabff18e5eabb6bee70c494"
-//	 #50 state root hash is "0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"
-//	 #50 extrinsics root hash is "0x2772dcca7b706ca5c9692cb02e373d667ab269ea9085eb55e6900584b7c2c682"
+fn get_storage_key_hash(matches: &ArgMatches) -> Result<String, Error> {
+    if matches.is_present("storage key") {
+        // TODO valid date storage key here
+        Ok(matches.value_of("storage key").unwrap().to_string())
+    } else {
+        let mut out = String::new();
+        let mut first_key = false;
+        out.push_str(&hex::encode(twox_128(
+            matches
+                .value_of("pallet")
+                .expect("pallet is the at last parameter to generate the storage key")
+                .as_bytes(),
+        )));
+        if matches.is_present("field") {
+            out.push_str(&hex::encode(twox_128(
+                matches.value_of("field").unwrap().as_bytes(),
+            )));
+        }
+
+        if matches.is_present("twox 64 concat") {
+            if !matches.is_present("field") {
+                return Err(Error::OptionValueIncorrect(
+                    "field".to_string(),
+                    "field name is required when genereate a key in that field".to_string(),
+                ));
+            }
+            out.push_str(&hex::encode(twox_64(
+                matches.value_of("twox 64 concat").unwrap().as_bytes(),
+            )));
+            out.push_str(&hex::encode(
+                matches.value_of("twox 64 concat").unwrap().as_bytes(),
+            ));
+            first_key = true;
+        }
+        if matches.is_present("black2 128 concat") {
+            if !matches.is_present("field") {
+                return Err(Error::OptionValueIncorrect(
+                    "field".to_string(),
+                    "field name is required when genereate a key in that field".to_string(),
+                ));
+            }
+            out.push_str(&hex::encode(blake2_128(
+                matches.value_of("black2 128 concat").unwrap().as_bytes(),
+            )));
+            out.push_str(&hex::encode(
+                matches.value_of("black2 128 concat").unwrap().as_bytes(),
+            ));
+            first_key = true;
+        }
+        if matches.is_present("identity") {
+            if !matches.is_present("field") {
+                return Err(Error::OptionValueIncorrect(
+                    "field".to_string(),
+                    "field name is required when genereate a key in that field".to_string(),
+                ));
+            }
+            out.push_str(&hex::encode(
+                matches.value_of("identity").unwrap().as_bytes(),
+            ));
+            first_key = true;
+        }
+        if matches.is_present("twox 64 concat 2nd") {
+            if !first_key {
+                return Err(Error::OptionValueIncorrect(
+                    "twox 64 concat/black2 128 concat/identity".to_string(),
+                    "one of aformentioned option is required when genereate a secondary key for double map".to_string(),
+                ));
+            }
+            out.push_str(&hex::encode(twox_64(
+                matches.value_of("twox 64 concat 2nd").unwrap().as_bytes(),
+            )));
+            out.push_str(&hex::encode(
+                matches.value_of("twox 64 concat 2nd").unwrap().as_bytes(),
+            ));
+        }
+        if matches.is_present("black2 128 concat 2nd") {
+            if !first_key {
+                return Err(Error::OptionValueIncorrect(
+                    "twox 64 concat/black2 128 concat/identity".to_string(),
+                    "one of aformentioned option is required when genereate a secondary key for double map".to_string(),
+                ));
+            }
+            out.push_str(&hex::encode(blake2_128(
+                matches
+                    .value_of("black2 128 concat 2nd")
+                    .unwrap()
+                    .as_bytes(),
+            )));
+            out.push_str(&hex::encode(
+                matches.value_of("black2 128 concat").unwrap().as_bytes(),
+            ));
+        }
+        if matches.is_present("identity 2nd") {
+            if !first_key {
+                return Err(Error::OptionValueIncorrect(
+                    "twox 64 concat/black2 128 concat/identity".to_string(),
+                    "one of aformentioned option is required when genereate a secondary key for double map".to_string(),
+                ));
+            }
+            out.push_str(&hex::encode(
+                matches.value_of("identity 2nd").unwrap().as_bytes(),
+            ));
+        }
+        Ok(out)
+    }
+}
+
 fn app() -> Result<(), Error> {
     let mut output: Vec<(String, Data)> = Vec::new();
     let matches = parse_args(args_os());
     init_logger(&LOGGER, matches.value_of("log").unwrap_or("error"));
     let including_children = !matches.is_present("exactly");
     let leaf_only = !matches.is_present("all node");
-    let storage_key_hash = matches
-        .value_of("storage key")
-        .expect("shorage key is required");
+    let storage_key_hash = &get_storage_key_hash(&matches)?;
     let raw_state_root_hash = matches
         .value_of("root hash")
         .expect("root hash is required");
     let db_path = matches.value_of("db path").expect("db path is required");
+    let summary = matches.is_present("summarize output");
 
     let mut state_root_hash: [u8; 32] = Default::default();
     if raw_state_root_hash.starts_with("0x") {
@@ -107,26 +223,14 @@ fn app() -> Result<(), Error> {
             "0x prefix is not exist".to_string(),
         ));
     };
-    // let state_root_hash = &hex!("940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"); // #5
-
-    // In POC
-    // We will get all system aacount info
-    // Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID
-    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9";
-    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b";
-    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7";
-    // let state_root_hash = &hex!("940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"); // #5
-    // let state_root_hash = &hex!("3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"); // #50
-
-    // #50
-    // [59, 85, 157, 87, 76, 74, 159, 19, 229, 93, 2, 86, 101, 95, 15, 113, 167, 10, 112, 55, 102, 34, 111, 16, 128, 248, 0, 34, 227, 156, 5, 125]
 
     info!("SSI Version: {}", env!("CARGO_PKG_VERSION"));
-    info!("db path: {}", db_path);
-    info!("including_children: {}", including_children);
-    info!("leaf only: {}", leaf_only);
-    info!("State Root Hash: {:?}", state_root_hash);
-    info!("Storage Key Hash: {}", storage_key_hash);
+    info!("DB path: {}", db_path);
+    info!("Including_children: {}", including_children);
+    info!("Leaf only: {}", leaf_only);
+    info!("State root hash: {:?}", state_root_hash);
+    info!("Storage key hash: {}", storage_key_hash);
+    info!("Sumarize data: {}", summary);
 
     let storage_key: Vec<usize> = storage_key_hash.chars().map(map_char_to_pos).collect();
     debug!("Storage Key Path: {:?}", storage_key);
@@ -160,12 +264,12 @@ fn app() -> Result<(), Error> {
         if n.1.is_none() {
             // some node not inspect
             let k = n.0.inner();
-            debug!("Ignored Key({}): {:?}", k.len(), k);
+            trace!("Ignored Key({}): {:?}", k.len(), k);
             continue;
         }
         let node_key = n.1.unwrap();
         let node_plan = n.2.node_plan();
-        debug!("Key({}): {:?}", node_key.len(), node_key);
+        trace!("Key({}): {:?}", node_key.len(), node_key);
         if node_key == *target_node_key.clone().unwrap() {
             debug!("find node: {:?}", target_node_key);
             let path = path_iter.next();
@@ -200,9 +304,6 @@ fn app() -> Result<(), Error> {
                                     map_pos_to_char(*p),
                                     p
                                 );
-                            } else if !including_children {
-                                output.push((format!("0x{}", storage_key_hash), vec![]));
-                                break;
                             }
                         }
 
@@ -232,14 +333,14 @@ fn app() -> Result<(), Error> {
                         for _ in 0..partial.len() {
                             if let Some(p) = path_iter.next() {
                                 debug!("Path to \"{}\"({})\t(partial)", map_pos_to_char(*p), p);
-                            } else if !including_children {
-                                output.push((format!("0x{}", storage_key_hash), vec![]));
-                                break;
                             }
                         }
                         Some(child.clone())
                     }
-                    _ => panic!("should not here"),
+                    _ => {
+                        error!("Nonexistent, please check your input parameters");
+                        return Ok(());
+                    }
                 };
                 debug!("child: {:?}", child);
                 if let Some(c) = child {
@@ -255,16 +356,15 @@ fn app() -> Result<(), Error> {
                 match node_plan {
                     NodePlan::Leaf { value, .. } => {
                         info!("Last node is leaf");
-                        // TODO get real value
                         output.push((
                             format!("0x{}", storage_key_hash),
-                            parse_value(Some(value.clone()), &data),
+                            (parse_value(Some(value.clone()), &data), true),
                         ));
                         break;
                     }
                     NodePlan::Branch { children, .. } => {
                         if !leaf_only && !including_children {
-                            output.push((format!("0x{}", storage_key_hash), vec![]));
+                            output.push((format!("0x{}", storage_key_hash), (vec![], false)));
                         }
                         if including_children {
                             info!("Last node is branch");
@@ -288,7 +388,7 @@ fn app() -> Result<(), Error> {
                         if !leaf_only {
                             output.push((
                                 format!("0x{}", storage_key_hash),
-                                parse_value(value.clone(), &data),
+                                (parse_value(value.clone(), &data), false),
                             ));
                         }
                         if including_children {
@@ -304,12 +404,13 @@ fn app() -> Result<(), Error> {
                             }
                         } else {
                             warn!("Last node is nibble branch");
+                            output.push((format!("0x{}", storage_key_hash), (vec![], false)));
                             break;
                         }
                     }
                     NodePlan::Extension { partial, child } => {
                         if !leaf_only {
-                            output.push((format!("0x{}", storage_key_hash), vec![]));
+                            output.push((format!("0x{}", storage_key_hash), (vec![], false)));
                         }
                         if including_children {
                             debug!("Last node is extension");
@@ -319,11 +420,12 @@ fn app() -> Result<(), Error> {
                             );
                         } else {
                             error!("Last node is extension");
-                            output.push((format!("0x{}", storage_key_hash), vec![]));
+                            output.push((format!("0x{}", storage_key_hash), (vec![], false)));
                             break;
                         }
                     }
                     NodePlan::Empty => {
+                        output.push((format!("0x{}", storage_key_hash), (vec![], false)));
                         warn!("Last node is empty");
                     }
                 };
@@ -350,7 +452,7 @@ fn app() -> Result<(), Error> {
             match node_plan {
                 NodePlan::Leaf { value, .. } => {
                     info!("Find {} in 0x{} subtrie", trie_key, storage_key_hash);
-                    output.push((trie_key, parse_value(Some(value.clone()), &data)));
+                    output.push((trie_key, (parse_value(Some(value.clone()), &data), true)));
                 }
                 NodePlan::Branch { children, .. } => {
                     if including_children {
@@ -371,7 +473,7 @@ fn app() -> Result<(), Error> {
                     ..
                 } => {
                     if !leaf_only {
-                        output.push((trie_key, parse_value(value.clone(), &data)));
+                        output.push((trie_key, (parse_value(value.clone(), &data), false)));
                     }
                     if including_children {
                         let mut partial_path = vec![16; partial.len()];
@@ -397,15 +499,11 @@ fn app() -> Result<(), Error> {
             };
         }
     }
-    // remove the subtrie root, because it is not leaf
-    if leaf_only && including_children && output.len() > 1 {
-        output.remove(0);
-    }
     trace!(
         "overall nodes in substrie: {}",
         pretty_print(storage_key_hash, children_hash_to_path)
     );
-    println!("{}", json_output(output));
+    println!("{}", json_output(output, summary));
     Ok(())
 }
 
