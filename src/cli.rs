@@ -137,10 +137,10 @@ where
                 .help("The identity key used for generate double map storage key you want to inspect"),
         )
         .arg(
-            Arg::with_name("summary output")
+            Arg::with_name("summarize output")
                 .short("s")
-                .long("summary")
-                .help("summary the data of node to \"Data hash:{twox_hash_of_data}, length: {length}, Leaf: {true/false}\""),
+                .long("summarize")
+                .help("summarize the data of node to \"hash:{twox_hash_of_data}, length: {length}, Leaf: {true/false}\""),
         )
         .arg(
             Arg::with_name("db path")

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::env::args_os;
 use std::ops::Range;
 
-use sp_core::hashing::{blake2_128, twox_128, twox_64};
+use sp_core::hashing::{blake2_128, blake2_256, twox_128, twox_64};
 use trie_db::{
     node::{NodeHandlePlan, NodePlan},
     TrieDB, TrieDBNodeIterator,
@@ -63,15 +63,20 @@ fn json_output(output: Vec<(String, Data)>, summary: bool) -> String {
     let output_last_idx = output.len() - 1;
     for (idx, (k, v)) in output.iter().enumerate() {
         if summary {
+            let hash = if v.0.len() == 32 {
+                hex::encode(&v.0)
+            } else {
+                hex::encode(blake2_256(&v.0))
+            };
             out.push_str(&format!(
-                r#"{{"{}":"Data hash: {}, Length: {}, Leaf: {}"}}"#,
+                r#"{{"{}":{{"hash": "0x{}", "length": {}, "leaf": {}}}}}"#,
                 k,
-                hex::encode(twox_128(&v.0)),
+                hash,
                 v.0.len(),
                 v.1
             ));
         } else {
-            out.push_str(&format!(r#"{{"{}":{:?}}}"#, k, v));
+            out.push_str(&format!(r#"{{"{}":{:?}}}"#, k, v.0));
         }
         if idx < output_last_idx {
             out.push(',');
@@ -110,7 +115,9 @@ fn get_storage_key_hash(matches: &ArgMatches) -> Result<String, Error> {
             out.push_str(&hex::encode(twox_64(
                 matches.value_of("twox 64 concat").unwrap().as_bytes(),
             )));
-            out.push_str(matches.value_of("twox 64 concat").unwrap());
+            out.push_str(&hex::encode(
+                matches.value_of("twox 64 concat").unwrap().as_bytes(),
+            ));
             first_key = true;
         }
         if matches.is_present("black2 128 concat") {
@@ -123,7 +130,9 @@ fn get_storage_key_hash(matches: &ArgMatches) -> Result<String, Error> {
             out.push_str(&hex::encode(blake2_128(
                 matches.value_of("black2 128 concat").unwrap().as_bytes(),
             )));
-            out.push_str(matches.value_of("black2 128 concat").unwrap());
+            out.push_str(&hex::encode(
+                matches.value_of("black2 128 concat").unwrap().as_bytes(),
+            ));
             first_key = true;
         }
         if matches.is_present("identity") {
@@ -133,7 +142,9 @@ fn get_storage_key_hash(matches: &ArgMatches) -> Result<String, Error> {
                     "field name is required when genereate a key in that field".to_string(),
                 ));
             }
-            out.push_str(matches.value_of("identity").unwrap());
+            out.push_str(&hex::encode(
+                matches.value_of("identity").unwrap().as_bytes(),
+            ));
             first_key = true;
         }
         if matches.is_present("twox 64 concat 2nd") {
@@ -146,7 +157,9 @@ fn get_storage_key_hash(matches: &ArgMatches) -> Result<String, Error> {
             out.push_str(&hex::encode(twox_64(
                 matches.value_of("twox 64 concat 2nd").unwrap().as_bytes(),
             )));
-            out.push_str(matches.value_of("twox 64 concat 2nd").unwrap());
+            out.push_str(&hex::encode(
+                matches.value_of("twox 64 concat 2nd").unwrap().as_bytes(),
+            ));
         }
         if matches.is_present("black2 128 concat 2nd") {
             if !first_key {
@@ -161,7 +174,9 @@ fn get_storage_key_hash(matches: &ArgMatches) -> Result<String, Error> {
                     .unwrap()
                     .as_bytes(),
             )));
-            out.push_str(matches.value_of("black2 128 concat").unwrap());
+            out.push_str(&hex::encode(
+                matches.value_of("black2 128 concat").unwrap().as_bytes(),
+            ));
         }
         if matches.is_present("identity 2nd") {
             if !first_key {
@@ -170,7 +185,9 @@ fn get_storage_key_hash(matches: &ArgMatches) -> Result<String, Error> {
                     "one of aformentioned option is required when genereate a secondary key for double map".to_string(),
                 ));
             }
-            out.push_str(matches.value_of("identity 2nd").unwrap());
+            out.push_str(&hex::encode(
+                matches.value_of("identity 2nd").unwrap().as_bytes(),
+            ));
         }
         Ok(out)
     }
@@ -187,7 +204,7 @@ fn app() -> Result<(), Error> {
         .value_of("root hash")
         .expect("root hash is required");
     let db_path = matches.value_of("db path").expect("db path is required");
-    let summary = matches.is_present("summary output");
+    let summary = matches.is_present("summarize output");
 
     let mut state_root_hash: [u8; 32] = Default::default();
     if raw_state_root_hash.starts_with("0x") {
@@ -208,11 +225,12 @@ fn app() -> Result<(), Error> {
     };
 
     info!("SSI Version: {}", env!("CARGO_PKG_VERSION"));
-    info!("db path: {}", db_path);
-    info!("including_children: {}", including_children);
-    info!("leaf only: {}", leaf_only);
-    info!("State Root Hash: {:?}", state_root_hash);
-    info!("Storage Key Hash: {}", storage_key_hash);
+    info!("DB path: {}", db_path);
+    info!("Including_children: {}", including_children);
+    info!("Leaf only: {}", leaf_only);
+    info!("State root hash: {:?}", state_root_hash);
+    info!("Storage key hash: {}", storage_key_hash);
+    info!("Sumarize data: {}", summary);
 
     let storage_key: Vec<usize> = storage_key_hash.chars().map(map_char_to_pos).collect();
     debug!("Storage Key Path: {:?}", storage_key);
