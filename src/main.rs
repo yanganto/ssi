@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::env::args_os;
 use std::ops::Range;
 
+// use sp_core::hashing::twox_128;
 use trie_db::{
     node::{NodeHandlePlan, NodePlan},
     TrieDB, TrieDBNodeIterator,
@@ -70,12 +71,6 @@ fn json_output(output: Vec<(String, Data)>) -> String {
     out
 }
 
-//	Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID
-//	"26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9" ++ Hash(Account_ID) ++ Account_ID
-//	 #5 state root hash is "0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"
-//	 #5 extrinsics root hash is "0xc1f78e951f26fe2c55e10f32b7bc97a227ee59274fabff18e5eabb6bee70c494"
-//	 #50 state root hash is "0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"
-//	 #50 extrinsics root hash is "0x2772dcca7b706ca5c9692cb02e373d667ab269ea9085eb55e6900584b7c2c682"
 fn app() -> Result<(), Error> {
     let mut output: Vec<(String, Data)> = Vec::new();
     let matches = parse_args(args_os());
@@ -107,19 +102,6 @@ fn app() -> Result<(), Error> {
             "0x prefix is not exist".to_string(),
         ));
     };
-    // let state_root_hash = &hex!("940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"); // #5
-
-    // In POC
-    // We will get all system aacount info
-    // Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID
-    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9";
-    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7b";
-    // let storage_key_hash = "26aa394eea5630e07c48ae0c9558cef7";
-    // let state_root_hash = &hex!("940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e"); // #5
-    // let state_root_hash = &hex!("3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"); // #50
-
-    // #50
-    // [59, 85, 157, 87, 76, 74, 159, 19, 229, 93, 2, 86, 101, 95, 15, 113, 167, 10, 112, 55, 102, 34, 111, 16, 128, 248, 0, 34, 227, 156, 5, 125]
 
     info!("SSI Version: {}", env!("CARGO_PKG_VERSION"));
     info!("db path: {}", db_path);
@@ -200,9 +182,6 @@ fn app() -> Result<(), Error> {
                                     map_pos_to_char(*p),
                                     p
                                 );
-                            } else if !including_children {
-                                output.push((format!("0x{}", storage_key_hash), vec![]));
-                                break;
                             }
                         }
 
@@ -232,9 +211,6 @@ fn app() -> Result<(), Error> {
                         for _ in 0..partial.len() {
                             if let Some(p) = path_iter.next() {
                                 debug!("Path to \"{}\"({})\t(partial)", map_pos_to_char(*p), p);
-                            } else if !including_children {
-                                output.push((format!("0x{}", storage_key_hash), vec![]));
-                                break;
                             }
                         }
                         Some(child.clone())
@@ -255,7 +231,6 @@ fn app() -> Result<(), Error> {
                 match node_plan {
                     NodePlan::Leaf { value, .. } => {
                         info!("Last node is leaf");
-                        // TODO get real value
                         output.push((
                             format!("0x{}", storage_key_hash),
                             parse_value(Some(value.clone()), &data),
@@ -304,6 +279,7 @@ fn app() -> Result<(), Error> {
                             }
                         } else {
                             warn!("Last node is nibble branch");
+                            output.push((format!("0x{}", storage_key_hash), vec![]));
                             break;
                         }
                     }
@@ -324,6 +300,7 @@ fn app() -> Result<(), Error> {
                         }
                     }
                     NodePlan::Empty => {
+                        output.push((format!("0x{}", storage_key_hash), vec![]));
                         warn!("Last node is empty");
                     }
                 };
@@ -410,6 +387,8 @@ fn app() -> Result<(), Error> {
 }
 
 fn main() {
+    // println!("{:?}", hex::encode(twox_128(b"System")));
+    // println!("{:?}", hex::encode(twox_128(b"Account")));
     if let Err(e) = app() {
         println!("{}", e);
     }
