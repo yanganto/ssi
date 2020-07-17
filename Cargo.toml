@@ -15,12 +15,20 @@ hash-db = "0.15.2"
 # current version is 0.21 but build fail
 # Issue open at https://github.com/paritytech/trie/issues/95
 trie-db = "0.19.2"
-trie = { package="sp-trie", git = 'https://github.com/yanganto/substrate.git', branch='expose-hash-roots' }
-sp-std = { package="sp-std", git = 'https://github.com/yanganto/substrate.git', branch='expose-hash-roots' }
-sp-core = { package="sp-core", git = 'https://github.com/yanganto/substrate.git', branch='expose-hash-roots' }
+sp-trie = { package="sp-trie", git = 'https://github.com/yanganto/substrate.git', branch='ssi', default-features = false }
+sp-std = { package="sp-std", git = 'https://github.com/yanganto/substrate.git', branch='ssi', default-features = false }
+sp-core = { package="sp-core", git = 'https://github.com/yanganto/substrate.git', branch='ssi', default-features = false  }
 
 log = "0.4.8"
 clap = "2.33.1"
 hex = "0.4.2"
 failure = "0.1.8"
 failure_derive ="0.1.8"
+
+[features]
+default = ["std"]
+std = [
+    "sp-std/std",
+    "sp-core/std",
+    "sp-trie/std",
+]

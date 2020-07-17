@@ -2,7 +2,7 @@
 /// implement import trait to read the storage
 use hash_db::{AsHashDB, HashDB, HashDBRef, Hasher as HashDBHasher, Prefix};
 use rocksdb::{IteratorMode, Options, DB};
-use trie::node_codec::NodeCodec;
+use sp_trie::node_codec::NodeCodec;
 use trie_db::TrieLayout;
 
 use crate::logger::{debug, trace};

@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-
 set -eux
-
-
 source ~/.cargo/env
-
-rustup --version
-cargo --version
-rustc --version
 
 echo -e "Test SSI output is complied with JSON format ..."
 cargo run -- -r 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d -P System -F Account  ./db  -s | jq
