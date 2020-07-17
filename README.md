@@ -13,14 +13,32 @@ The data will show in the node or in the nodes of a subtrie.
 
 ### Sample Commands
 
-Here is an example help you can use in query the data in Rocks DB with System pallet Account storage at block #50
+Here are examples help you can use in query the data of `Account` field in `System` pallet in Rocks DB at block #50
+
 ```
 ssi -r 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d -k 26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9 ./db
 ```
-Also you can use following command to inspect the data all nodes in the subtrie at block #5
+
+or 
+
+```
+ssi -r 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d -P System -F Account ./db -s
+```
+
+
+Also you can use following command to inspect the data of `System` pallet in Rocks DB at block #5
+
 ```
 ssi -r 0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e -k 26aa394eea5630e07c48ae0c9558cef7 ./db
 ```
+
+or
+
+```
+ssi -r 0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e -P System ./db
+```
+
+Besides, you can exactly insepc
 
 ### Options
 Here is the required parameters to use this tool.
@@ -28,16 +46,20 @@ Here is the required parameters to use this tool.
 ssi --root-hash <root hash> --storage-key <storage key> <db path>
 ``` 
 
+Following infomation is required:
 - `db path`: the path to the rocksdb used to storage data of the chain build in Substrate
 - `root hash`: the root hash for trie node in the chain build in Substrate
-- `storage key`: the storage key used in substrate runtime
+- storage key info, it can be provide by `storage key` or `pallet`, `field`, `twox 64 concat`, `black2 128 concat`, `twox 64 concat 2nd`, `black2 128 concat 2nd`
+  - `storage key`: directly set the storage key used in substrate runtime
+  - other options: these options are infomation from substrate pallet, and will be used to generate the storage key  
 
 There are still some optional options to help you inspect the database.
-- `-e`, exactly mode, will no get the node in subtrie, only the data from the node exactly match the storage key.
+- `-e`, exactly mode, this mode will no get the node in subtrie, only the data from the node exactly match the storage key.
+- `-s`, sumary mode, this mode will show the data sumary of a node, if you only take care about data chaging without the exactly meaning.
 - `-l <trace/debug/info/warn/error>`, show logs with different level
   - `info` level: the node type of storage key
-  - `debug` level: the path to trace the trie
-  - `trace` level: use for developing
+  - `debug` level: the operation about path to trace the trie
+  - `trace` level: the operation in DB layer for development
   - `warn` level: show the error if the database incorrect or damage or some node is incorrect
   - `error` level: show the error of this tool
 
