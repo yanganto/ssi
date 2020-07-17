@@ -66,7 +66,7 @@ where
                 .long("pallet")
                 .takes_value(true)
 				.conflicts_with("storage key")
-                .help("The pallet use for generate storage key you want to inspect, ex: System"),
+                .help("The pallet name used for generate storage key you want to inspect, ex: System"),
         )
         .arg(
             Arg::with_name("field")
@@ -74,7 +74,7 @@ where
                 .long("field")
                 .takes_value(true)
 				.conflicts_with("storage key")
-                .help("The storage field use for generate storage key you want to inspect, ex: Account"),
+                .help("The storage field name used for generate storage key you want to inspect, ex: Account"),
         )
         .arg(
             Arg::with_name("twox 64 concat")
@@ -83,7 +83,8 @@ where
                 .takes_value(true)
 				.conflicts_with("storage key")
 				.conflicts_with("black2 128 concat")
-                .help("The twox 64 hash and concat the key use for generate storage key you want to inspect"),
+				.conflicts_with("identity")
+                .help("The twox 64 hash and concated the key used for generate storage key you want to inspect"),
         )
         .arg(
             Arg::with_name("black2 128 concat")
@@ -92,7 +93,18 @@ where
                 .takes_value(true)
 				.conflicts_with("storage key")
 				.conflicts_with("twox 64 concat")
-                .help("The black2 128 hash and concat the 2nd key of double map use for generate storage key you want to inspect"),
+				.conflicts_with("identity")
+                .help("The black2 128 hash and concated the key used for generate storage key you want to inspect"),
+        )
+        .arg(
+            Arg::with_name("identity")
+                .short("I")
+                .long("id")
+                .takes_value(true)
+				.conflicts_with("storage key")
+				.conflicts_with("twox 64 concat")
+				.conflicts_with("black2 128 concat")
+                .help("The identity key used for generate storage key you want to inspect"),
         )
         .arg(
             Arg::with_name("twox 64 concat 2nd")
@@ -101,7 +113,8 @@ where
                 .takes_value(true)
 				.conflicts_with("storage key")
 				.conflicts_with("black2 128 concat 2nd")
-                .help("The twox 64 hash and concat the 2nd key use of double map for generate storage key you want to inspect"),
+				.conflicts_with("identity 2nd")
+                .help("The twox 64 hash and concated the 2nd key used for generate double map storage key you want to inspect"),
         )
         .arg(
             Arg::with_name("black2 128 concat 2nd")
@@ -110,7 +123,18 @@ where
                 .takes_value(true)
 				.conflicts_with("storage key")
 				.conflicts_with("twox 64 concat 2nd")
-                .help("The black2 128 hash and concat the key use for generate storage key you want to inspect"),
+				.conflicts_with("identity 2nd")
+                .help("The black2 128 hash and concat the key use for generate double map storage key you want to inspect"),
+        )
+        .arg(
+            Arg::with_name("identity 2nd")
+                .short("i")
+                .long("id-2")
+                .takes_value(true)
+				.conflicts_with("storage key")
+				.conflicts_with("twox 64 concat 2nd")
+				.conflicts_with("black2 128 concat 2nd")
+                .help("The identity key used for generate double map storage key you want to inspect"),
         )
         .arg(
             Arg::with_name("summary output")

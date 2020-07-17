@@ -87,6 +87,7 @@ fn get_storage_key_hash(matches: &ArgMatches) -> Result<String, Error> {
         Ok(matches.value_of("storage key").unwrap().to_string())
     } else {
         let mut out = String::new();
+        let mut first_key = false;
         out.push_str(&hex::encode(twox_128(
             matches
                 .value_of("pallet")
@@ -100,24 +101,60 @@ fn get_storage_key_hash(matches: &ArgMatches) -> Result<String, Error> {
         }
 
         if matches.is_present("twox 64 concat") {
+            if !matches.is_present("field") {
+                return Err(Error::OptionValueIncorrect(
+                    "field".to_string(),
+                    "field name is required when genereate a key in that field".to_string(),
+                ));
+            }
             out.push_str(&hex::encode(twox_64(
                 matches.value_of("twox 64 concat").unwrap().as_bytes(),
             )));
             out.push_str(matches.value_of("twox 64 concat").unwrap());
+            first_key = true;
         }
         if matches.is_present("black2 128 concat") {
+            if !matches.is_present("field") {
+                return Err(Error::OptionValueIncorrect(
+                    "field".to_string(),
+                    "field name is required when genereate a key in that field".to_string(),
+                ));
+            }
             out.push_str(&hex::encode(blake2_128(
                 matches.value_of("black2 128 concat").unwrap().as_bytes(),
             )));
             out.push_str(matches.value_of("black2 128 concat").unwrap());
+            first_key = true;
+        }
+        if matches.is_present("identity") {
+            if !matches.is_present("field") {
+                return Err(Error::OptionValueIncorrect(
+                    "field".to_string(),
+                    "field name is required when genereate a key in that field".to_string(),
+                ));
+            }
+            out.push_str(matches.value_of("identity").unwrap());
+            first_key = true;
         }
         if matches.is_present("twox 64 concat 2nd") {
+            if !first_key {
+                return Err(Error::OptionValueIncorrect(
+                    "twox 64 concat/black2 128 concat/identity".to_string(),
+                    "one of aformentioned option is required when genereate a secondary key for double map".to_string(),
+                ));
+            }
             out.push_str(&hex::encode(twox_64(
                 matches.value_of("twox 64 concat 2nd").unwrap().as_bytes(),
             )));
             out.push_str(matches.value_of("twox 64 concat 2nd").unwrap());
         }
         if matches.is_present("black2 128 concat 2nd") {
+            if !first_key {
+                return Err(Error::OptionValueIncorrect(
+                    "twox 64 concat/black2 128 concat/identity".to_string(),
+                    "one of aformentioned option is required when genereate a secondary key for double map".to_string(),
+                ));
+            }
             out.push_str(&hex::encode(blake2_128(
                 matches
                     .value_of("black2 128 concat 2nd")
@@ -125,6 +162,15 @@ fn get_storage_key_hash(matches: &ArgMatches) -> Result<String, Error> {
                     .as_bytes(),
             )));
             out.push_str(matches.value_of("black2 128 concat").unwrap());
+        }
+        if matches.is_present("identity 2nd") {
+            if !first_key {
+                return Err(Error::OptionValueIncorrect(
+                    "twox 64 concat/black2 128 concat/identity".to_string(),
+                    "one of aformentioned option is required when genereate a secondary key for double map".to_string(),
+                ));
+            }
+            out.push_str(matches.value_of("identity 2nd").unwrap());
         }
         Ok(out)
     }
@@ -273,7 +319,10 @@ fn app() -> Result<(), Error> {
                         }
                         Some(child.clone())
                     }
-                    _ => panic!("should not here"),
+                    _ => {
+                        error!("Nonexistent, please check your input parameters");
+                        return Ok(());
+                    }
                 };
                 debug!("child: {:?}", child);
                 if let Some(c) = child {
