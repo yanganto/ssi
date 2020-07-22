@@ -165,7 +165,7 @@ impl<'a> HashDBRef<Hasher, Vec<u8>> for SimpleTrie<'a> {
         } else {
             hash.to_vec()
         };
-        debug!("key: {:?}", key);
+        trace!("key: {:?}", key);
         for cf in self.cfs.clone() {
             let h = self.db.cf_handle(cf).unwrap();
             if self.db.get_cf(h, &key).unwrap().is_some() {

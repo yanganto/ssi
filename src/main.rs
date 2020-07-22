@@ -60,26 +60,28 @@ fn pretty_print(prefix: &str, map: HashMap<Vec<u8>, Vec<usize>>) -> String {
 
 fn json_output(output: Vec<(String, Data)>, summary: bool) -> String {
     let mut out = String::from("[");
-    let output_last_idx = output.len() - 1;
-    for (idx, (k, v)) in output.iter().enumerate() {
-        if summary {
-            let hash = if v.0.len() == 32 {
-                hex::encode(&v.0)
+    if !output.is_empty() {
+        let output_last_idx = output.len() - 1;
+        for (idx, (k, v)) in output.iter().enumerate() {
+            if summary {
+                let hash = if v.0.len() == 32 {
+                    hex::encode(&v.0)
+                } else {
+                    hex::encode(blake2_256(&v.0))
+                };
+                out.push_str(&format!(
+                    r#"{{"{}":{{"hash": "0x{}", "length": {}, "leaf": {}}}}}"#,
+                    k,
+                    hash,
+                    v.0.len(),
+                    v.1
+                ));
             } else {
-                hex::encode(blake2_256(&v.0))
-            };
-            out.push_str(&format!(
-                r#"{{"{}":{{"hash": "0x{}", "length": {}, "leaf": {}}}}}"#,
-                k,
-                hash,
-                v.0.len(),
-                v.1
-            ));
-        } else {
-            out.push_str(&format!(r#"{{"{}":{:?}}}"#, k, v.0));
-        }
-        if idx < output_last_idx {
-            out.push(',');
+                out.push_str(&format!(r#"{{"{}":{:?}}}"#, k, v.0));
+            }
+            if idx < output_last_idx {
+                out.push(',');
+            }
         }
     }
     out.push(']');
@@ -251,6 +253,8 @@ fn app() -> Result<(), Error> {
     // child tree, hash -> path
     let mut children_hash_to_path: HashMap<Vec<u8>, Vec<usize>> = HashMap::new();
 
+    let mut node_count = 0;
+
     loop {
         let current_node = node_iter.next();
         trace!("current node: {:?}", current_node);
@@ -271,7 +275,9 @@ fn app() -> Result<(), Error> {
         let node_plan = n.2.node_plan();
         trace!("Key({}): {:?}", node_key.len(), node_key);
         if node_key == *target_node_key.clone().unwrap() {
-            debug!("find node: {:?}", target_node_key);
+            info!("Find the {} nodes", node_count);
+            node_count += 1;
+            debug!("node key: {:?}", target_node_key);
             let path = path_iter.next();
 
             // TODO refactor this
@@ -281,93 +287,68 @@ fn app() -> Result<(), Error> {
                 data.expect("node key error, open trace log for futher for finding the root cause");
             debug!("data for {:?}: {} length bytes", node_key, data.len());
 
-            if let Some(p) = path {
-                let child = match node_plan {
+            if let Some(mut p) = path {
+                match node_plan {
+                    NodePlan::Leaf { value, .. } => {
+                        warn!("run into leaf before the path drain");
+                        let value = parse_value(Some(value.clone()), &data);
+                        if value.len() == 32 {
+                            target_node_key = Some(value);
+                            continue;
+                        } else {
+                            warn!("Run into leaf node early");
+                            output.push((format!("0x{}", storage_key_hash), (value, true)));
+                            break;
+                        }
+                    }
                     NodePlan::NibbledBranch {
                         children,
                         value,
                         partial,
                     } => {
-                        debug!(
-                            "Find path to a nibbleBranch \"{}\"({})",
-                            map_pos_to_char(*p),
-                            p
-                        );
-                        trace!("children: {:?}", children);
-                        trace!("value: {:?}", value);
-                        trace!("partial: {:?}", partial);
+                        let partial_nibble = partial.build(&data);
+                        debug!("Get a NibbledBranch, find path to {:?}", partial_nibble);
+                        debug!("partial: {:?}", partial_nibble);
 
-                        for _ in 0..partial.len() {
-                            if let Some(p) = path_iter.next() {
+                        for (idx, n) in partial_nibble.iter().enumerate() {
+                            if idx == 0 {
+                                if *p != n as usize {
+                                    error!(
+                                        "trie path not match path: {}({}), nibble: {}",
+                                        map_pos_to_char(*p),
+                                        p,
+                                        n
+                                    );
+                                }
+                                continue;
+                            }
+                            if let Some(pp) = path_iter.next() {
+                                if *pp != n as usize {
+                                    error!(
+                                        "trie path not match path: {}({}), nibble: {}",
+                                        map_pos_to_char(*p),
+                                        pp,
+                                        n
+                                    );
+                                }
                                 debug!(
-                                    "Find path to \"{}\"({})\t(partial)",
-                                    map_pos_to_char(*p),
-                                    p
+                                    "Find path to \"{}\"({})\t(partial: {:?})",
+                                    map_pos_to_char(*pp),
+                                    pp,
+                                    n
                                 );
+                                p = pp;
                             }
                         }
 
-                        children
-                            .get(*p)
-                            .expect("branch node should have this child")
-                            .clone()
-                    }
-                    NodePlan::Branch { children, value } => {
-                        debug!("Find path to a branch \"{}\"({})", map_pos_to_char(*p), p);
-                        trace!("children: {:?}", children);
                         trace!("value: {:?}", value);
-
-                        children
-                            .get(*p)
-                            .expect("branch node should have this child")
-                            .clone()
-                    }
-                    NodePlan::Extension { child, partial } => {
-                        debug!(
-                            "Find path to an extension \"{}\"({})",
-                            map_pos_to_char(*p),
-                            p
-                        );
-                        trace!("partial: {:?}", partial);
-
-                        for _ in 0..partial.len() {
-                            if let Some(p) = path_iter.next() {
-                                debug!("Path to \"{}\"({})\t(partial)", map_pos_to_char(*p), p);
-                            }
-                        }
-                        Some(child.clone())
-                    }
-                    _ => {
-                        error!("Nonexistent, please check your input parameters");
-                        return Ok(());
-                    }
-                };
-                debug!("child: {:?}", child);
-                if let Some(c) = child {
-                    let h = parse_child_hash(c, &data);
-                    target_node_key = Some(h);
-                    debug!("new target node key: {:?}", target_node_key);
-                } else {
-                    error!("Path Error");
-                    break;
-                }
-            } else {
-                // This end of path
-                match node_plan {
-                    NodePlan::Leaf { value, .. } => {
-                        info!("Last node is leaf");
-                        output.push((
-                            format!("0x{}", storage_key_hash),
-                            (parse_value(Some(value.clone()), &data), true),
-                        ));
-                        break;
-                    }
-                    NodePlan::Branch { children, .. } => {
-                        if !leaf_only && !including_children {
-                            output.push((format!("0x{}", storage_key_hash), (vec![], false)));
-                        }
-                        if including_children {
-                            info!("Last node is branch");
+                        if let Some(c) = children.get(*p).expect("trie hash this child").clone() {
+                            debug!("children: {:?}", children);
+                            debug!("child: {:?}", c);
+                            let h = parse_child_hash(c, &data);
+                            target_node_key = Some(h);
+                            debug!("new target node key: {:?}", target_node_key);
+                        } else if including_children {
                             for (idx, child) in children.iter().enumerate() {
                                 if let Some(c) = child {
                                     children_hash_to_path
@@ -375,65 +356,144 @@ fn app() -> Result<(), Error> {
                                 }
                             }
                         } else {
-                            error!("Last node is branch");
+                            output.push((
+                                format!("0x{}", storage_key_hash),
+                                (parse_value(value.clone(), &data), true),
+                            ));
                             break;
                         }
                     }
-                    NodePlan::NibbledBranch {
-                        children,
-                        partial,
-                        value,
-                        ..
-                    } => {
-                        if !leaf_only {
-                            output.push((
-                                format!("0x{}", storage_key_hash),
-                                (parse_value(value.clone(), &data), false),
-                            ));
+                    NodePlan::Branch { children, value } => {
+                        debug!(
+                            "Get a Branch, find path to \"{}\"({})",
+                            map_pos_to_char(*p),
+                            p
+                        );
+                        trace!("value: {:?}", value);
+
+                        if let Some(c) = children.get(*p).expect("trie hash this child").clone() {
+                            trace!("children: {:?}", children);
+                            debug!("child: {:?}", c);
+                            let h = parse_child_hash(c, &data);
+                            target_node_key = Some(h);
+                            debug!("new target node key: {:?}", target_node_key);
+                        } else {
+                            error!("children: {:?}", children);
+                            error!("Path end at {}, Branch node has no child for here", p);
+                            break;
+                        }
+                    }
+                    NodePlan::Extension { child, partial } => {
+                        debug!(
+                            "Get an Extension, find path to \"{}\"({})",
+                            map_pos_to_char(*p),
+                            p
+                        );
+                        let partial_nibble = partial.build(&data);
+                        trace!("partial: {:?}", partial_nibble);
+
+                        let mut from_node_check = false;
+                        for n in partial_nibble.iter() {
+                            if !from_node_check {
+                                if *p != n as usize {
+                                    error!(
+                                        "trie path not match path: {}({}), nibble: {}",
+                                        map_pos_to_char(*p),
+                                        p,
+                                        n
+                                    );
+                                }
+                                from_node_check = true;
+                                continue;
+                            }
+                            if let Some(p) = path_iter.next() {
+                                debug!(
+                                    "Find path to \"{}\"({})\t(partial: {:?})",
+                                    map_pos_to_char(*p),
+                                    p,
+                                    n
+                                );
+                            }
+                        }
+                        debug!("child: {:?}", child);
+                        let h = parse_child_hash(child.clone(), &data);
+                        target_node_key = Some(h);
+                        debug!("new target node key: {:?}", target_node_key);
+                    }
+                    _ => {
+                        error!("Nonexistent, please check your input parameters");
+                        return Ok(());
+                    }
+                };
+            } else {
+                // This end of path
+                match node_plan {
+                    NodePlan::Leaf { value, .. } => {
+                        let value = parse_value(Some(value.clone()), &data);
+                        if value.len() == 32 {
+                            info!("Get the last node, and it is child trie");
+                            children_hash_to_path.insert(value, vec![]);
+                        } else {
+                            info!("Get th last node, and it is Leaf");
+                            output.push((format!("0x{}", storage_key_hash), (value, true)));
+                            break;
+                        }
+                    }
+                    NodePlan::Branch { children, .. } => {
+                        info!("Get the last node, and it is Branch");
+                        if !leaf_only && !including_children {
+                            output.push((format!("0x{}", storage_key_hash), (vec![], false)));
                         }
                         if including_children {
-                            info!("Last node is nibble branch");
-                            let partial_path = vec![16; partial.len()];
                             for (idx, child) in children.iter().enumerate() {
                                 if let Some(c) = child {
-                                    let mut path = partial_path.clone();
-                                    path.push(idx);
                                     children_hash_to_path
-                                        .insert(parse_child_hash(c.clone(), &data), path);
+                                        .insert(parse_child_hash(c.clone(), &data), vec![idx]);
                                 }
                             }
                         } else {
-                            warn!("Last node is nibble branch");
-                            output.push((format!("0x{}", storage_key_hash), (vec![], false)));
+                            error!("Get the last node but it is branch");
                             break;
                         }
                     }
+                    NodePlan::NibbledBranch { .. } => {
+                        panic!("unreachable by design");
+                    }
                     NodePlan::Extension { partial, child } => {
+                        info!("Get the last node, and it is extension");
                         if !leaf_only {
                             output.push((format!("0x{}", storage_key_hash), (vec![], false)));
                         }
                         if including_children {
-                            debug!("Last node is extension");
-                            children_hash_to_path.insert(
-                                parse_child_hash(child.clone(), &data),
-                                vec![16; partial.len()],
-                            );
+                            let partial_nibble = partial.build(&data);
+                            let mut partial_path = vec![];
+                            let mut from_node_check = false;
+                            for n in partial_nibble.iter() {
+                                if !from_node_check {
+                                    from_node_check = true;
+                                    continue;
+                                }
+                                partial_path.push(n as usize);
+                            }
+
+                            children_hash_to_path
+                                .insert(parse_child_hash(child.clone(), &data), partial_path);
                         } else {
-                            error!("Last node is extension");
+                            error!("Get the last node but it is extension");
                             output.push((format!("0x{}", storage_key_hash), (vec![], false)));
                             break;
                         }
                     }
                     NodePlan::Empty => {
+                        warn!("Get the last node but it is empty");
                         output.push((format!("0x{}", storage_key_hash), (vec![], false)));
-                        warn!("Last node is empty");
                     }
                 };
             }
         } else if including_children && children_hash_to_path.contains_key(&node_key.to_vec()) {
             // TODO refactor this
             let data = raw_query(&db2, &cfs, n.0.as_prefix(), node_key);
-            trace!("prefix: {:?}, node key {:?}", n.0.as_prefix(), node_key);
+            debug!("prefix: {:?}, node key {:?}", n.0.as_prefix(), node_key);
             let data =
                 data.expect("node key error, open trace log for futher for finding the root cause");
             debug!("data for {:?}: {} length bytes", node_key, data.len());
@@ -476,7 +536,11 @@ fn app() -> Result<(), Error> {
                         output.push((trie_key, (parse_value(value.clone(), &data), false)));
                     }
                     if including_children {
-                        let mut partial_path = vec![16; partial.len()];
+                        let partial_nibble = partial.build(&data);
+                        let mut partial_path = partial_nibble
+                            .iter()
+                            .map(|b| b as usize)
+                            .collect::<Vec<usize>>();
                         for (idx, child) in children.iter().enumerate() {
                             if let Some(c) = child {
                                 let mut path = path_prefix.clone();
