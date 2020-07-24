@@ -38,7 +38,7 @@ or
 ssi -r 0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e -P System ./db
 ```
 
-Besides, you can exactly insepc
+Besides, you can exactly inspect
 
 ### Options
 Here is the required parameters to use this tool.
@@ -46,7 +46,7 @@ Here is the required parameters to use this tool.
 ssi --root-hash <root hash> --storage-key <storage key> <db path>
 ``` 
 
-Following infomation is required:
+Following information is required:
 - `db path`: the path to the rocksdb used to storage data of the chain build in Substrate
 - `root hash`: the root hash for trie node in the chain build in Substrate
 - storage key info, it can be provide by `storage key` or `pallet`, `field`, `twox 64 concat`, `black2 128 concat`, `twox 64 concat 2nd`, `black2 128 concat 2nd`
@@ -55,7 +55,16 @@ Following infomation is required:
 
 There are still some optional options to help you inspect the database.
 - `-e`, exactly mode, this mode will no get the node in subtrie, only the data from the node exactly match the storage key.
-- `-s`, sumary mode, this mode will show the data sumary of a node, if you only take care about data chaging without the exactly meaning.
+- `-s`, summary mode, this mode will show the data summary of a node, if you only take care about data changing without the exactly meaning. Following field in summary help you to inspect the data.
+  - `hash`: the data hash
+  - `length`: the length of data
+  - `subtrie_path`: the path subsequent after the storage key
+  - `pallet`: possible pallet name
+  - `field`: possible field name
+  - `key`: try to semantic decode the key
+  - example: ![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/semantic_decode.png | width=100)
+
+
 - `-l <trace/debug/info/warn/error>`, show logs with different level
   - `info` level: the node type of storage key
   - `debug` level: the operation about path to trace the trie

@@ -1,7 +1,7 @@
 use sp_core::hashing::{blake2_128, twox_64};
 
 mod hash_maps;
-use hash_maps::{FIELD_MAP, PALLET_MAP};
+use hash_maps::{BLAKE2_MAP, XX_MAP};
 
 pub fn twox_64_concat_encode(s: &str) -> String {
     let mut out = hex::encode(twox_64(s.as_bytes()));
@@ -40,7 +40,7 @@ fn black2_128_concat_decode(s: String) -> Option<String> {
 }
 
 fn pallet_decode(s: &str) -> &str {
-    if let Some(p) = PALLET_MAP.get(s) {
+    if let Some(p) = XX_MAP.get(s) {
         p
     } else {
         s
@@ -48,7 +48,7 @@ fn pallet_decode(s: &str) -> &str {
 }
 
 fn field_decode(s: &str) -> &str {
-    if let Some(p) = FIELD_MAP.get(s) {
+    if let Some(p) = XX_MAP.get(s) {
         p
     } else {
         s
@@ -64,9 +64,23 @@ pub fn key_semantic_decode(s: &'_ str) -> (&'_ str, &'_ str, Option<String>) {
 
     let key = if !tail.is_empty() {
         let mut k = twox_64_concat_decode(tail.to_string());
+
         if k.is_none() {
             k = black2_128_concat_decode(tail.to_string());
         }
+
+        if k.is_none() && tail.len() >= 64 {
+            let (black2_key, tail) = tail.split_at(64);
+            k = BLAKE2_MAP
+                .get(black2_key)
+                .map(|c| format!("{}∥{}", c, tail));
+        }
+
+        if k.is_none() && tail.len() >= 32 && tail.len() < 64 {
+            let (two_x_key, tail) = tail.split_at(32);
+            k = XX_MAP.get(two_x_key).map(|c| format!("{}∥{}", c, tail));
+        }
+
         if k.is_none() {
             let decode_bytes = hex::decode(tail).unwrap_or_default();
             k = std::str::from_utf8(&decode_bytes)
