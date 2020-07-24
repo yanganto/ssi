@@ -11,7 +11,7 @@ rocksdb = "0.14.0"
 hex-literal = "0.2.1"
 colored = "1.9"
 hash-db = "0.15.2"
-
+phf = { version = "0.8", features = ["macros"] }
 # current version is 0.21 but build fail
 # Issue open at https://github.com/paritytech/trie/issues/95
 trie-db = "0.19.2"

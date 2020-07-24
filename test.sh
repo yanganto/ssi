@@ -13,6 +13,8 @@ cargo run -- -r 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c05
 cargo run -- -r 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d -P Balances ./db -s | jq
 cargo run -- -r 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d -P Balances -F Account ./db -s | jq
 echo -e "Test SSI Get value from HashMap Field ..."
-cargo run -- -r 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d -P Balances -F Account -T //Feride ./db
-cargo run -- -r 0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e -P Balances -F Account -T '//Feride' ./db
+cargo run -- -r 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d -P Balances -F Account -T //Feride ./db | jq
+cargo run -- -r 0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e -P Balances -F Account -T '//Feride' ./db | jq
+echo -e "Test SSI semantic feature.."
+ -r 0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e -P System -F Account -T '//Eve' ./db -s -e | jq
 echo -e "\e[0;32m  +------------------+ \n\e[0;32m  | JSON Format Pass | \n\e[0;32m  +------------------+ \e[0m"
