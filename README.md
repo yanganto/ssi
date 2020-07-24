@@ -62,7 +62,8 @@ There are still some optional options to help you inspect the database.
   - `pallet`: possible pallet name
   - `field`: possible field name
   - `key`: try to semantic decode the key
-  - example: ![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/semantic_decode.png | width=100)
+  - example: 
+  - <img src="https://raw.githubusercontent.com/yanganto/ssi/master/semantic_decode.png" width="50%">
 
 
 - `-l <trace/debug/info/warn/error>`, show logs with different level
