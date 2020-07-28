@@ -39,11 +39,11 @@ fn black2_128_concat_decode(s: String) -> Option<String> {
     None
 }
 
-fn pallet_decode(s: &str) -> &str {
+fn pallet_decode(s: &str) -> Option<&str> {
     if let Some(p) = XX_MAP.get(s) {
-        p
+        Some(p)
     } else {
-        s
+        None
     }
 }
 
@@ -56,9 +56,25 @@ fn field_decode(s: &str) -> &str {
 }
 
 // TODO: handle the 2nd key
-pub fn key_semantic_decode(s: &'_ str) -> (&'_ str, &'_ str, Option<String>) {
+pub fn storage_key_semantic_decode(
+    s: &'_ str,
+    keep_unsolve: bool,
+) -> (Option<&'_ str>, Option<&'_ str>, Option<String>) {
+    if s.len() < 32 {
+        return (None, None, None);
+    }
+
     let (p, tail) = s.split_at(32);
     let pallet_name = pallet_decode(p);
+
+    if tail.len() < 32 {
+        if keep_unsolve {
+            return (pallet_name, Some(tail), None);
+        } else {
+            return (pallet_name, None, None);
+        }
+    }
+
     let (f, tail) = tail.split_at(32);
     let field_name = field_decode(f);
 
@@ -81,18 +97,19 @@ pub fn key_semantic_decode(s: &'_ str) -> (&'_ str, &'_ str, Option<String>) {
             k = XX_MAP.get(two_x_key).map(|c| format!("{}∥{}", c, tail));
         }
 
-        if k.is_none() {
+        if k.is_none() && keep_unsolve {
+            Some(tail.to_string())
+        } else {
             let decode_bytes = hex::decode(tail).unwrap_or_default();
-            k = std::str::from_utf8(&decode_bytes)
+            std::str::from_utf8(&decode_bytes)
                 .ok()
                 .map(|s| s.to_string())
         }
-        k
     } else {
         None
     };
 
-    (pallet_name, field_name, key)
+    (pallet_name, Some(field_name), key)
 }
 
 #[cfg(test)]
@@ -101,8 +118,6 @@ mod tests {
     #[test]
     fn test_twox_64_concat_decode() {
         assert_eq!(twox_64_concat_decode("".to_string()), None);
-        //3fe5e3a3f34ce9df -> Twex 64 hash (16)
-        //"2f2f457665" -> '//Eve' (id)
         assert_eq!(
             twox_64_concat_decode("3fe5e3a3f34ce9df2f2f457665".to_string()),
             Some("//Eve".to_string())
@@ -114,6 +129,3 @@ mod tests {
 			("System", "Account", Some("//Eve".to_string())));
     }
 }
-//26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da93fe5e3a3f34ce9df2f2f457665
-//26aa394eea5630e07c48ae0c9558cef7 -> System (32)
-//b99d880ec681799c0cf30e8886371da9 -> Account (32)
