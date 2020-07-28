@@ -23,9 +23,11 @@ fn main() {
     init_logger(&LOGGER, matches.value_of("log").unwrap_or("error"));
 
     let f = if matches.is_present("decode storage key") {
-        decode_storage_key
-    } else if matches.is_present("decode in file") {
-        stream_inspect_app
+        if matches.is_present("storage key") {
+            decode_storage_key
+        } else {
+            stream_inspect_app
+        }
     } else {
         db_inspect_app
     };

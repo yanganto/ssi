@@ -9,5 +9,7 @@ jobs:
   include:
     - stage: Build
       script: cargo build --verbose --all
+    - stage: UT Test
+      script:  cargo test  --verbose
     - stage: Cli Test
       script: ./test.sh

@@ -62,15 +62,8 @@ where
         )
         .arg(
             Arg::with_name("decode storage key")
-                .short("D")
-                .long("decode-storage-key")
-                .requires("storage key")
-                .help("Decode the storage key you want to inspect"),
-        )
-        .arg(
-            Arg::with_name("decode in file")
                 .short("d")
-                .long("decode-in-file")
+                .long("decode-storage-key")
                 .help("Decode the storage keys in stdin or file you want to inspect"),
         )
         .arg(

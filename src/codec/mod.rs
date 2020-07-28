@@ -84,20 +84,20 @@ pub fn storage_key_semantic_decode(
         if k.is_none() {
             k = black2_128_concat_decode(tail.to_string());
         }
-
         if k.is_none() && tail.len() >= 64 {
             let (black2_key, tail) = tail.split_at(64);
             k = BLAKE2_MAP
                 .get(black2_key)
                 .map(|c| format!("{}∥{}", c, tail));
         }
-
         if k.is_none() && tail.len() >= 32 && tail.len() < 64 {
             let (two_x_key, tail) = tail.split_at(32);
             k = XX_MAP.get(two_x_key).map(|c| format!("{}∥{}", c, tail));
         }
 
-        if k.is_none() && keep_unsolve {
+        if k.is_some() {
+            k
+        } else if k.is_none() && keep_unsolve {
             Some(tail.to_string())
         } else {
             let decode_bytes = hex::decode(tail).unwrap_or_default();
@@ -125,7 +125,7 @@ mod tests {
     }
     #[test]
     fn test_key_semantic_decode() {
-        assert_eq!(key_semantic_decode("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da93fe5e3a3f34ce9df2f2f457665"), 
-			("System", "Account", Some("//Eve".to_string())));
+        assert_eq!(storage_key_semantic_decode("26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da93fe5e3a3f34ce9df2f2f457665", false), 
+			(Some("System"), Some("Account"), Some("//Eve".to_string())));
     }
 }

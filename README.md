@@ -79,16 +79,24 @@ There are still some optional options to help you inspect the database.
 ![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/demo.png)
 
 
-### Inspect Logfiles
-The tool can diectly deocde a storage key with `-k`, `-D` options, and also the tool can inspect the any log file and print the possible decode result after the line.
+### Inspect Log files
+The tool can diectly deocde a storage key `-d` option
+ - if a storage key is provided with `-k` option, the key will be decoded directly
+ - if a file is provided, the inspect result will print after the line with storage key
 
 Here is the example for directly decode a storage key
-```ssi -k cec5070d609dd3497f72bde07fc96ba0e0cdd062e6eaf24295ad4ccfc41d4609ddddd -D```
+
+```
+ssi -d -k cec5070d609dd3497f72bde07fc96ba0e0cdd062e6eaf24295ad4ccfc41d4609ddddd
+```
 
 Here is an exmaple to inpsect a log file with substrate storage keys
-```ssi -d <file path>```
 
-#### Snapshop of inspect db
+```
+ssi -d <file path>
+```
+
+#### Snapshop of inspect files
 
 ![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/log_demo.png)
 
