@@ -61,6 +61,19 @@ where
                 .help("The storage key you want to inspect, it is okay to use only prefix part of storage key, ex: 6aa394eea5630e07c48ae0c9558cef7"),
         )
         .arg(
+            Arg::with_name("decode storage key")
+                .short("D")
+                .long("decode-storage-key")
+                .requires("storage key")
+                .help("Decode the storage key you want to inspect"),
+        )
+        .arg(
+            Arg::with_name("decode in file")
+                .short("d")
+                .long("decode-in-file")
+                .help("Decode the storage keys in stdin or file you want to inspect"),
+        )
+        .arg(
             Arg::with_name("pallet")
                 .short("P")
                 .long("pallet")
@@ -143,11 +156,9 @@ where
                 .help("summarize the data of node to \"hash:{twox_hash_of_data}, length: {length}, Leaf: {true/false}\""),
         )
         .arg(
-            Arg::with_name("db path")
-                .help("the db path to Rocks DB")
+            Arg::with_name("path")
+                .help("the db path to Rocks DB ot the file path to the log files")
                 .index(1)
-                .requires("root hash")
-                .required(true),
         )
         .get_matches_from(itr)
 }

@@ -7,6 +7,7 @@ description = "Substrate Storage Inspector"
 
 
 [dependencies]
+regex = "1.3.9"
 rocksdb = "0.14.0"
 hex-literal = "0.2.1"
 colored = "1.9"
