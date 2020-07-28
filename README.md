@@ -7,11 +7,12 @@
 
 ## Usage
 
+### Inspect DB
 Given the `state root hash`, `storage key`, `rocks db path`, you can inspect the data in the DB which is used in the chain build based on Substrate.
 The data will show in the node or in the nodes of a subtrie.
 
 
-### Sample Commands
+#### Sample Commands
 
 Here are examples help you can use in query the data of `Account` field in `System` pallet in Rocks DB at block #50
 
@@ -38,7 +39,7 @@ or
 ssi -r 0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e -P System ./db
 ```
 
-Besides, you can exactly inspect
+Besides, you can exactly inspect with `-e` option.
 
 ### Options
 Here is the required parameters to use this tool.
@@ -73,10 +74,24 @@ There are still some optional options to help you inspect the database.
   - `warn` level: show the error if the database incorrect or damage or some node is incorrect
   - `error` level: show the error of this tool
 
-
-### Snapshop
+#### Snapshop of inspect db
 
 ![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/demo.png)
+
+
+### Inspect Logfiles
+The tool can diectly deocde a storage key with `-k`, `-D` options, and also the tool can inspect the any log file and print the possible decode result after the line.
+
+Here is the example for directly decode a storage key
+```ssi -k cec5070d609dd3497f72bde07fc96ba0e0cdd062e6eaf24295ad4ccfc41d4609ddddd -D```
+
+Here is an exmaple to inpsect a log file with substrate storage keys
+```ssi -d <file path>```
+
+#### Snapshop of inspect db
+
+![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/log_demo.png)
+
 
 ## Solutions & How it works
 
