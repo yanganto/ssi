@@ -13,11 +13,11 @@ impl log::Log for Logger {
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
             match record.level() {
-                log::Level::Error => println!("{} - {}", "ERROR".red().bold(), record.args()),
-                log::Level::Warn => println!("{} - {}", "WARN".red(), record.args()),
-                log::Level::Info => println!("{} - {}", "INFO".cyan(), record.args()),
-                log::Level::Debug => println!("{} - {}", "DEBUG".blue().bold(), record.args()),
-                log::Level::Trace => println!("{} - {}", "TRACE".blue(), record.args()),
+                log::Level::Error => eprintln!("{} - {}", "ERROR".red().bold(), record.args()),
+                log::Level::Warn => eprintln!("{} - {}", "WARN".red(), record.args()),
+                log::Level::Info => eprintln!("{} - {}", "INFO".cyan(), record.args()),
+                log::Level::Debug => eprintln!("{} - {}", "DEBUG".blue().bold(), record.args()),
+                log::Level::Trace => eprintln!("{} - {}", "TRACE".blue(), record.args()),
             }
         }
     }

@@ -165,7 +165,6 @@ pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
         trace!("Key({}): {:?}", node_key.len(), node_key);
         if node_key == *target_node_key.clone().unwrap() {
             info!("Find the {} nodes", node_count);
-            node_count += 1;
             debug!("node key: {:?}", target_node_key);
             let path = path_iter.next();
 
@@ -185,7 +184,7 @@ pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
                             target_node_key = Some(value);
                             continue;
                         } else {
-                            warn!("Run into leaf node early");
+                            error!("Run into leaf node early");
                             output.push((storage_key_hash.to_string(), (value, true)));
                             break;
                         }
@@ -196,9 +195,12 @@ pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
                         partial,
                     } => {
                         let partial_nibble = partial.build(&data);
-                        debug!("Get a NibbledBranch, find path to {:?}", partial_nibble);
                         debug!("partial: {:?}", partial_nibble);
-
+                        debug!("children: {:?}", children);
+                        debug!(
+                            "Get a NibbledBranch ({}), partial path {:?}",
+                            node_count, partial_nibble
+                        );
                         for (idx, n) in partial_nibble.iter().enumerate() {
                             if idx == 0 {
                                 if *p != n as usize {
@@ -220,18 +222,46 @@ pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
                                         n
                                     );
                                 }
-                                debug!(
+                                trace!(
                                     "Find path to \"{}\"({})\t(partial: {:?})",
                                     map_pos_to_char(*pp),
                                     pp,
                                     n
                                 );
-                                p = pp;
                             }
                         }
 
+                        let child = if !partial_nibble.is_empty() {
+                            if let Some(pp) = path_iter.next() {
+                                p = pp;
+                                debug!("update path to {}", p);
+                                Some(
+                                    children
+                                        .get(*p)
+                                        .unwrap()
+                                        .clone()
+                                        .expect("trie hash this child")
+                                        .clone(),
+                                )
+                            } else {
+                                None
+                            }
+                        } else {
+                            children.get(*p).expect("trie hash this child").clone()
+                        };
+
+                        if child.is_none() {
+                            debug!("go to the end of path {:?}", partial_nibble);
+                        } else {
+                            debug!(
+                                "skip path to {:?}, and will go to {}",
+                                partial_nibble,
+                                map_pos_to_char(*p)
+                            );
+                        }
+
                         trace!("value: {:?}", value);
-                        if let Some(c) = children.get(*p).expect("trie hash this child").clone() {
+                        if let Some(c) = child {
                             debug!("children: {:?}", children);
                             debug!("child: {:?}", c);
                             let h = parse_child_hash(c, &data);
@@ -254,7 +284,8 @@ pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
                     }
                     NodePlan::Branch { children, value } => {
                         debug!(
-                            "Get a Branch, find path to \"{}\"({})",
+                            "Get a Branch ({}), find path to \"{}\"({})",
+                            node_count,
                             map_pos_to_char(*p),
                             p
                         );
@@ -273,11 +304,6 @@ pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
                         }
                     }
                     NodePlan::Extension { child, partial } => {
-                        debug!(
-                            "Get an Extension, find path to \"{}\"({})",
-                            map_pos_to_char(*p),
-                            p
-                        );
                         let partial_nibble = partial.build(&data);
                         trace!("partial: {:?}", partial_nibble);
 
@@ -304,6 +330,21 @@ pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
                                 );
                             }
                         }
+
+                        if let Some(p) = path_iter.next() {
+                            debug!(
+                                "Get an Extension ({}), skip path to {:?}, and will go to {}",
+                                node_count,
+                                partial_nibble,
+                                map_pos_to_char(*p)
+                            );
+                        } else {
+                            debug!(
+                                "Get an Extension ({}), go to the end of path {:?}",
+                                node_count, partial_nibble
+                            );
+                        }
+
                         debug!("child: {:?}", child);
                         let h = parse_child_hash(child.clone(), &data);
                         target_node_key = Some(h);
@@ -379,6 +420,7 @@ pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
                     }
                 };
             }
+            node_count += 1;
         } else if including_children && children_hash_to_path.contains_key(&node_key.to_vec()) {
             // TODO refactor this
             let data = raw_query(&db2, &cfs, n.0.as_prefix(), node_key);
