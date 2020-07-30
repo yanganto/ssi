@@ -85,43 +85,14 @@ fn json_output(output: Vec<(String, Data)>, summary: bool, prefix: &str) -> Stri
     out
 }
 
-pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
+fn get_subtrie_node(
+    storage_key_hash: &str,
+    db_path: &str,
+    state_root_hash: [u8; 32],
+    including_children: bool,
+    leaf_only: bool,
+) -> Result<Vec<(String, Data)>, Error> {
     let mut output: Vec<(String, Data)> = Vec::new();
-
-    let including_children = !matches.is_present("exactly");
-    let leaf_only = !matches.is_present("all node");
-    let storage_key_hash = &get_storage_key_hash(&matches)?;
-    let raw_state_root_hash = matches
-        .value_of("root hash")
-        .expect("root hash is required");
-    let db_path = matches.value_of("path").expect("db path is required");
-    let summary = matches.is_present("summarize output");
-
-    let mut state_root_hash: [u8; 32] = Default::default();
-    if raw_state_root_hash.starts_with("0x") {
-        let tmp = hex::decode(raw_state_root_hash.strip_prefix("0x").unwrap())?;
-        if tmp.len() == 32 {
-            state_root_hash.copy_from_slice(&tmp[..]);
-        } else {
-            return Err(Error::OptionValueIncorrect(
-                "state root hash".to_string(),
-                "size is not correct".to_string(),
-            ));
-        }
-    } else {
-        return Err(Error::OptionValueIncorrect(
-            "state root hash".to_string(),
-            "0x prefix is not exist".to_string(),
-        ));
-    };
-
-    info!("SSI Version: {}", env!("CARGO_PKG_VERSION"));
-    info!("DB path: {}", db_path);
-    info!("Including_children: {}", including_children);
-    info!("Leaf only: {}", leaf_only);
-    info!("State root hash: {:?}", state_root_hash);
-    info!("Storage key hash: {}", storage_key_hash);
-    info!("Sumarize data: {}", summary);
 
     let storage_key: Vec<usize> = storage_key_hash.chars().map(map_char_to_pos).collect();
     debug!("Storage Key Path: {:?}", storage_key);
@@ -352,7 +323,7 @@ pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
                     }
                     _ => {
                         error!("Nonexistent, please check your input parameters");
-                        return Ok(());
+                        return Ok(output);
                     }
                 };
             } else {
@@ -497,6 +468,53 @@ pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
         "overall nodes in substrie: {}",
         pretty_print(storage_key_hash, children_hash_to_path)
     );
+    Ok(output)
+}
+
+pub fn db_inspect_app(matches: ArgMatches) -> Result<(), Error> {
+    let storage_key_hash = &get_storage_key_hash(&matches)?;
+    let summary = matches.is_present("summarize output");
+    let including_children = !matches.is_present("exactly");
+    let leaf_only = !matches.is_present("all node");
+    let raw_state_root_hash = matches
+        .value_of("root hash")
+        .expect("root hash is required");
+    let db_path = matches.value_of("path").expect("db path is required");
+
+    let mut state_root_hash: [u8; 32] = Default::default();
+
+    if raw_state_root_hash.starts_with("0x") {
+        let tmp = hex::decode(raw_state_root_hash.strip_prefix("0x").unwrap())?;
+        if tmp.len() == 32 {
+            state_root_hash.copy_from_slice(&tmp[..]);
+        } else {
+            return Err(Error::OptionValueIncorrect(
+                "state root hash".to_string(),
+                "size is not correct".to_string(),
+            ));
+        }
+    } else {
+        return Err(Error::OptionValueIncorrect(
+            "state root hash".to_string(),
+            "0x prefix is not exist".to_string(),
+        ));
+    };
+
+    info!("SSI Version: {}", env!("CARGO_PKG_VERSION"));
+    info!("DB path: {}", db_path);
+    info!("Including_children: {}", including_children);
+    info!("Leaf only: {}", leaf_only);
+    info!("State root hash: {:?}", state_root_hash);
+    info!("Storage key hash: {}", storage_key_hash);
+    info!("Sumarize data: {}", summary);
+
+    let output = get_subtrie_node(
+        storage_key_hash,
+        db_path,
+        state_root_hash,
+        including_children,
+        leaf_only,
+    )?;
     println!("{}", json_output(output, summary, storage_key_hash));
     Ok(())
 }

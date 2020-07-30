@@ -29,7 +29,12 @@ fn main() {
             stream_inspect_app
         }
     } else {
-        db_inspect_app
+        if matches.is_present("root hash diff") {
+            // diff mode
+            db_inspect_app
+        } else {
+            db_inspect_app
+        }
     };
 
     if let Err(e) = f(matches) {
