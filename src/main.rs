@@ -13,7 +13,7 @@ mod errors;
 mod codec;
 
 mod inspector;
-use inspector::{db_inspect_app, decode_storage_key, stream_inspect_app};
+use inspector::{db_diff_app, db_inspect_app, decode_storage_key, stream_inspect_app};
 
 static LOGGER: Logger = Logger;
 
@@ -28,13 +28,10 @@ fn main() {
         } else {
             stream_inspect_app
         }
+    } else if matches.is_present("root hash diff") {
+        db_diff_app
     } else {
-        if matches.is_present("root hash diff") {
-            // diff mode
-            db_inspect_app
-        } else {
-            db_inspect_app
-        }
+        db_inspect_app
     };
 
     if let Err(e) = f(matches) {
