@@ -40,6 +40,13 @@ where
                 .help("The hash for trie root node, ex: 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"),
         )
         .arg(
+            Arg::with_name("root hash diff")
+                .short("R")
+                .long("root-hash-diff")
+                .takes_value(true)
+                .help("The hash for trie root node that you want to diff"),
+        )
+        .arg(
             Arg::with_name("storage key")
                 .short("k")
                 .long("storage-key")

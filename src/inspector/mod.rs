@@ -6,7 +6,7 @@ use crate::codec::{blake2_128_concat_encode, twox_64_concat_encode};
 use crate::errors::Error;
 
 mod db;
-pub use db::db_inspect_app;
+pub use db::{db_diff_app, db_inspect_app};
 
 mod stream;
 pub use stream::stream_inspect_app;
