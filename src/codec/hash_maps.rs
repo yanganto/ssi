@@ -1,190 +1,720 @@
-use phf::phf_map;
+use std::collections::HashMap;
+use std::env;
+use std::fs::{read_dir, File};
+use std::io::{BufRead, BufReader};
+use std::path::Path;
 
-pub static XX_MAP: phf::Map<&str, &str> = phf_map! {
-    "26aa394eea5630e07c48ae0c9558cef7" => "System",
-    "b99d880ec681799c0cf30e8886371da9" => "Account",
-    "bdc0bd303e9855813aa8a30d4efc5112" => "ExtrinsicCount",
-    "e1eb15a16fabe2e4811de3e43b129e56" => "AllExtrinsicsWeight",
-    "a86da5a932684f199539836fcb8c886f" => "AllExtrinsicsLen",
-    "a44704b568d21667356a5a050c118746" => "BlockHash",
-    "df1daeb8986837f21cc5d17596bb78d1" => "ExtrinsicData",
-    "02a5c1b19ab7a04f536c519aca4983ac" => "Number",
-    "8a42f33323cb5ced3b44dd825fda9fcc" => "ParentHash",
-    "b06c3320c6ac196d813442e270868d63" => "ExtrinsicsRoot",
-    "99e7f93fc6a98f0874fd057f111c4d2d" => "Digest",
-    "80d41e5e16056765bc8461851072c9d7" => "Events",
-    "0a98fdbe9ce6c55837576c60c7af3850" => "EventCount",
-    "bb94e1c21adab714983cf06622e1de76" => "EventTopics",
-    "f9cce9c888469bb1a0dceaa129672ef8" => "LastRuntimeUpgrade",
-    "ff553b5a9862a516939d82b3d3d8661a" => "ExecutionPhase",
-    "bd2a529379475088d3e29a918cd47872" => "RandomnessCollectiveFlip",
-    "1a39ec767bd5269111e6492a1675702a" => "RandomMaterial",
-    "1cb6f36e027abb2091cfb5110ab5087f" => "Babe",
-    "38316cbf8fa0da822a20ac1c55bf1be3" => "EpochIndex",
-    "5e0621c4869aa60c02be9adcc98a0d1d" => "Authorities",
-    "678711d15ebbceba5cd0cea158e6675a" => "GenesisSlot",
-    "06155b3cd9a8c9e5e9a23fd5dc13a5ed" => "CurrentSlot",
-    "7a414cb008e0e61e46722aa60abdd672" => "Randomness",
-    "7ce678799d3eff024253b90e84927cc6" => "NextRandomness",
-    "66e8f035c8adbe7f1547b43c51e6f8a4" => "SegmentIndex",
-    "b9093659d7a856809757134d2bc86e62" => "UnderConstruction",
-    "fa92de910a7ce2bd58e99729c69727c1" => "Initialized",
-    "0323475657e0890fbdbf66fb24b4649e" => "Lateness",
-    "f0c365c3cf59d671eb72da0e7a4113c4" => "Timestamp",
-    "9f1f0515f462cdcf84e0f1d6045dfcbb" => "Now",
-    "bbd108c4899964f707fdaffb82636065" => "DidUpdate",
-    "1a736d37504c2e3fb73dad160c55b291" => "Indices",
-    "8ee7418a6531173d60d1f6a82d8f4d51" => "Accounts",
-    "3f1467a096bcd71a5b6a0c8155e20810" => "TransactionPayment",
-    "3f2edf3bdf381debe331ab7446addfdc" => "NextFeeMultiplier",
-    "d57bce545fb382c34570e5dfbf338f5e" => "Authorship",
-    "a36180b5cfb9f6541f8849df92a6ec93" => "Uncles",
-    "326d21bc67a4b34023d577585d72bfd7" => "Author",
-    "bddf84c5eb23e6f53af725880d8ffe90" => "DidSetUncles",
-    "d5c41b52a371aa36c9254ce34324f2a5" => "Offences",
-    "b262e9238fa402540c250bc3f5d6188d" => "Reports",
-    "3b996bb988ea8ee15bad3ffd2f68dbda" => "DeferredOffences",
-    "60dc8ef000cdbdc859dd352229ce16fb" => "ConcurrentReportsIndex",
-    "3589c0dac50da6fb3a3611eb32bcd27e" => "ReportsByKindIndex",
-    "cec5070d609dd3497f72bde07fc96ba0" => "Session",
-    "88dcde934c658227ee1dfafcd6e16903" => "Validators",
-    "72763800a36a99fdfc7c10f6415f6ee6" => "CurrentIndex",
-    "9450bfa4b96a3fa7a3c8f40da6bf32e1" => "QueuedChanged",
-    "e0cdd062e6eaf24295ad4ccfc41d4609" => "QueuedKeys",
-    "5a9a74be4a5a7df60b01a6c0326c5e20" => "DisabledValidators",
-    "4c014e6bf8b8c2c011e7290b85696bb3" => "NextKeys",
-    "726380404683fc89e8233450c8aa1950" => "KeyOwner",
-    "f68f425cf5645aacb2ae59b51baed904" => "FinalityTracker",
-    "b97380ce5f4e70fbf9d6b5866eb59527" => "RecentHints",
-    "20d49a14a763e1cbc887acd097f92014" => "OrderedHints",
-    "9b58374218f48eaf5bc23b7b3e7cf08a" => "Median",
-    "b81c33f1b29016d3ff5ac7fb7614c3d3" => "Update",
-    "2371e21684d2fae99bcb4d579242f74a" => "Grandpa",
-    "f39a107f2d8d3854c9aba9b021f43d9c" => "State",
-    "2ff65991b1c915dd6cc8d4825eacfcb4" => "PendingChange",
-    "01d7818126bd9b3074803e91f4c91b59" => "NextForced",
-    "7ddd013461b72c3004f9c0ca3faf9ebe" => "Stalled",
-    "8a2d09463effcc78a22d75b9cb87dffc" => "CurrentSetId",
-    "d47cb8f5328af743ddfb361e7180e7fc" => "SetIdSession",
-    "2b06af9719ac64d755623cda8ddd9b94" => "ImOnline",
-    "8aa1f2c9844f11024c1d204e705a6217" => "HeartbeatAfter",
-    "9f99a2ce711f3a31b2fc05604c93f179" => "Keys",
-    "cc5a1aa6e3716372f36ef103b7e3ae67" => "ReceivedHeartbeats",
-    "b1c371ded9e9c565e89ba783c4d5f5f9" => "AuthoredBlocks",
-    "11f3ba2e1cdd6d62f2ff9b5589e7ff81" => "Council",
-    "88c2f7188c6fdd1dffae2fa0d171f440" => "Proposals",
-    "e9d6db8868a37d79930bc3f7f33950d1" => "ProposalOf",
-    "71cd3068e6118bfb392b798317f63a89" => "Voting",
-    "6254e9d55588784fa2a62b726696e2b1" => "ProposalCount",
-    "ba7fb8745735dc3be2a2c61a72c39e78" => "Members",
-    "cb3136ee16886ac28a54f39e605b387a" => "Prime",
-    "8985776095addd4789fccbce8ca77b23" => "TechnicalCommittee",
-    "492a52699edf49c972c21db794cfcf57" => "TechnicalMembership",
-    "d5e1a2fa16732ce6906189438c0a82c6" => "Utility",
-    "3cd15a3fd6e04e47bee3922dbfa92c8d" => "Multisigs",
-    "2aeddc77fe58c98d50bd37f1b90840f9" => "Identity",
-    "cd7f37317cd20b61e9bd46fab8704714" => "IdentityOf",
-    "43a953ac082e08b6527ce262dbd4abf2" => "SuperOf",
-    "6ee5a0b09e7e9a96219dd66f0f74c37e" => "SubsOf",
-    "1f7f3f3eb1c2a69978da998d19f74ec5" => "Registrars",
-    "426e15054d267946093858132eb537f1" => "Society",
-    "95999521c6c89cd80b677e53ce20f98c" => "Founder",
-    "ad8964373ae14fde6a1b12a2ccb7aebd" => "Rules",
-    "948ece45793d7f15c9c0b9574ddbc665" => "Candidates",
-    "bbf9723cdae80db599c0e53c5a470cd2" => "SuspendedCandidates",
-    "a47a9ff5cd5bf4d848a80a0b1a947dc3" => "Pot",
-    "05fe52c2045750c3c492ccdcf62e2b9c" => "Head",
-    "4961503206762969ef4828521ef92a35" => "SuspendedMembers",
-    "c4f1521904024343c14aea2e016c84d7" => "Bids",
-    "05eef273131bee9ab1033b8db9e5ab8c" => "Vouching",
-    "19f4459916c774a1c3287d8ac99e98b9" => "Payouts",
-    "0da61bea5fc7de17ebdf361b9914e50b" => "Strikes",
-    "b4adc6a1ce4f7cc2e696ed0fd06bd01c" => "Votes",
-    "d3bcf3722b2e2300078c9d1795079f6e" => "Defender",
-    "91ca57b0c4b20b29ae7e99d6201d680c" => "DefenderVotes",
-    "d0b4a3f7631f0c0e761898fe198211de" => "MaxMembers",
-    "a2ce73642c549ae79c14f0a671cf45f9" => "Recovery",
-    "a3f57184ab60571b3be8a355d07be414" => "Recoverable",
-    "dff9094d7baf1e2d9b2e3a4253b096f8" => "ActiveRecoveries",
-    "1809d78346727a0ef58c0fa03bafa323" => "Proxy",
-    "5c0d1176a568c1f92944340dbfed9e9c" => "Sudo",
-    "530ebca703c85910e7164cb7d1c9e47b" => "Key",
-    "481e203dcea218263e3a96ca9e4b1938" => "Balances",
-    "57c875e4cff74148e4628f264b974c80" => "TotalIssuance",
-    "218f26c73add634897550b4003b26bc6" => "Locks",
-    "21f9f6c5bc7693c66a197023a31982f8" => "Kton",
-    "03a4971484692cd58fa781fd333a2970" => "Staking",
-    "ac0a2cbf8e355f5ea6cb2de8727bfb0c" => "HistoryDepth",
-    "138e71612491192d68deab7e6f563fe1" => "ValidatorCount",
-    "b49a2738eeb30896aacb8b3fb46471bd" => "MinimumValidatorCount",
-    "5579297f4dfb9609e7e4c2ebab9ce40a" => "Invulnerables",
-    "3ed14b45ed20d054f05e37e2542cfe70" => "Bonded",
-    "422adb579f1dbf4f3886c5cfa3bb8cc4" => "Ledger",
-    "9220e172bed316605f73f1ff7b4ade98" => "Payee",
-    "9c6a637f62ae2af1c7e31eed7e96be04" => "Nominators",
-    "0b6a45321efae92aea15e0740ec7afe7" => "CurrentEra",
-    "487df464e44a534ba6b0cbb32407b587" => "ActiveEra",
-    "ad811cd65a470ddc5f1d628ff0550982" => "ErasStartSessionIndex",
-    "8bde0a0ea8864605e3b68ed9cb2da01b" => "ErasStakers",
-    "42982b9d6c7acc99faa9094c912372c2" => "ErasStakersClipped",
-    "682db92dde20a10d96d00ff0e9e221c0" => "ErasValidatorPrefs",
-    "7e6ed2ee507c7b4441d59e4ded44b8a2" => "ErasValidatorReward",
-    "80cc6574281671b299c1727d7ac68cab" => "ErasRewardPoints",
-    "a141c4fe67c2d11f4a10c6aca7a79a04" => "ErasTotalStake",
-    "f7dad0317324aecae8744b87fc95f2f3" => "ForceEra",
-    "c29a0310e1bb45d20cace77ccb62c97d" => "SlashRewardFraction",
-    "28dccb559b95c40168a1b2696581b5a7" => "CanceledSlashPayout",
-    "042824170a5db4381fe3395039cabd24" => "UnappliedSlashes",
-    "ea07de2b8f010516dca3f7ef52f7ac5a" => "BondedEras",
-    "ad6e15ee7bfd5d55eba1012487d3af54" => "ValidatorSlashInEra",
-    "815008e8210b6d6cf701e22e5bf27141" => "NominatorSlashInEra",
-    "ab6a212bc08a5603828f33f90ec4a139" => "SlashingSpans",
-    "e62f6f797ebe9138dfced942977fea50" => "SpanSlash",
-    "605b2c046b5509037f3f158b9741d037" => "EarliestUnappliedSlash",
-    "7e006c26d69c4c97f65648ab815a2744" => "SnapshotValidators",
-    "f7e257c9436fe67e2c4d9d4ced7d454c" => "SnapshotNominators",
-    "506d22b33505b67f525d81bd005b1687" => "QueuedElected",
-    "b3b6930af377ba74f7e8379e44b2c77f" => "QueuedScore",
-    "e1791577e4efcb083fdc3cb21e85b2e4" => "EraElectionStatus",
-    "a3f6dd299ad3afa68580a25a73f6eabf" => "IsCurrentSessionFinal",
-    "ce11fdaa3115ff65bab630e3f5a0cbd3" => "LivingTime",
-    "69a606664fe0a48551119f22a07853f0" => "PayoutFraction",
-    "1ab2669620e457d4fa08f305b84703ed" => "RingPool",
-    "00444b5e05d0712fd694bc34f31213d2" => "KtonPool",
-    "603d66d8a116e9e270a03f7f97aca386" => "ElectionsPhragmen",
-    "40982df579bdf1315224f41e5f482063" => "RunnersUp",
-    "7657ad2ff3a6742e1071bbb898ce5431" => "ElectionRounds",
-    "2beee1f11d65734e4b23a791ae63d897" => "Claims",
-    "ae15665727371f0abcfff82102476fe6" => "ClaimsFromEth",
-    "1364576f395d9dceb495ba4b73e5b44d" => "ClaimsFromTron",
-    "f43d6436dec51f09c3b71287a8fc9d48" => "Total",
-    "162fd7914abee58f0a852f0f99b51624" => "EthBacking",
-    "4101814528a740a3f937d31a3874095e" => "RingProofVerified",
-    "3522c7014eec46b8d65d7fcd0f0a3c03" => "RingRedeemAddress",
-    "1b6abe6aa4e2af47b8cee54684ddbcd8" => "KtonProofVerified",
-    "603da2a7bc24828b7b777e2ca70aee57" => "KtonRedeemAddress",
-    "7f5c1eef73994ae12719f830fa07c7fa" => "DepositProofVerified",
-    "b39f66e81475e00006d6b9eaf3c42410" => "DepositRedeemAddress",
-    "f5c1bba2d215331589c2d1fec1dc6e2d" => "EthRelay",
-    "70a9cc26ec47b44d926c5a828270c04d" => "GenesisHeader",
-    "2b529812decd5a023a3d1a896c734e41" => "DagsMerkleRoots",
-    "6283db85db02532d66927a83108ec2e5" => "BestHeaderHash",
-    "bd39242e4ae6b0079b25cff406846591" => "CanonicalHeaderHashes",
-    "af3385e35cc12fed4c74164ad01ecbbf" => "Headers",
-    "9ebcb8287b7255cee9c7f6d22452629a" => "HeaderBriefs",
-    "9f58e49b3aeeb0e8de62bb8101f5126b" => "NumberOfBlocksFinality",
-    "8044c28cf3c181976f88393158541ebe" => "NumberOfBlocksSafe",
-    "7379139c8abcdafe77e7c2231c4f0268" => "CheckAuthority",
-    "d61689a8307d0283fb1b01db2f07337a" => "ReceiptVerifyFee",
-    "3d2edfcb599a72c98b02f9f19bb6cca8" => "RelayerPoints",
-    "ef5aa0c0d09d929c6e510ec752d0776a" => "TotalRelayerPoints",
-    "69da7b5a8a81510eba25f64ccb5b11a3" => "HeaderMMR",
-    "5bff144bafe82904fa82c6cd45738d1a" => "MMRNodeList",
-    "ea5f9039b45d3bc78ab109dc90827b0c" => "MMRCounter",
-    "9a4ea0593d7f97323d947a42bc6c2639" => "Positions",
-    "327473e57e0ba6cc39e52adc79597a77" => "Treasury",
-    "3c9c1284130706f5aea0c8b3d4c54d89" => "Approvals",
-    "2c5de123c468aef7f3ac2ab3a76f87ce" => "Tips",
-    "d834d1db4313872258a93b9fc45d488b" => "Reasons"
-};
-pub static BLAKE2_MAP: phf::Map<&str, &str> = phf_map! {};
+use lazy_static::lazy_static;
+use sp_core::hashing::{blake2_128, twox_128};
+
+use crate::logger::info;
+
+lazy_static! {
+    pub static ref XX_MAP: HashMap<String, String> = {
+        let mut map = HashMap::new();
+        map.insert(
+            "26aa394eea5630e07c48ae0c9558cef7".to_string(),
+            "System".to_string(),
+        );
+        map.insert(
+            "b99d880ec681799c0cf30e8886371da9".to_string(),
+            "Account".to_string(),
+        );
+        map.insert(
+            "bdc0bd303e9855813aa8a30d4efc5112".to_string(),
+            "ExtrinsicCount".to_string(),
+        );
+        map.insert(
+            "e1eb15a16fabe2e4811de3e43b129e56".to_string(),
+            "AllExtrinsicsWeight".to_string(),
+        );
+        map.insert(
+            "a86da5a932684f199539836fcb8c886f".to_string(),
+            "AllExtrinsicsLen".to_string(),
+        );
+        map.insert(
+            "a44704b568d21667356a5a050c118746".to_string(),
+            "BlockHash".to_string(),
+        );
+        map.insert(
+            "df1daeb8986837f21cc5d17596bb78d1".to_string(),
+            "ExtrinsicData".to_string(),
+        );
+        map.insert(
+            "02a5c1b19ab7a04f536c519aca4983ac".to_string(),
+            "Number".to_string(),
+        );
+        map.insert(
+            "8a42f33323cb5ced3b44dd825fda9fcc".to_string(),
+            "ParentHash".to_string(),
+        );
+        map.insert(
+            "b06c3320c6ac196d813442e270868d63".to_string(),
+            "ExtrinsicsRoot".to_string(),
+        );
+        map.insert(
+            "99e7f93fc6a98f0874fd057f111c4d2d".to_string(),
+            "Digest".to_string(),
+        );
+        map.insert(
+            "80d41e5e16056765bc8461851072c9d7".to_string(),
+            "Events".to_string(),
+        );
+        map.insert(
+            "0a98fdbe9ce6c55837576c60c7af3850".to_string(),
+            "EventCount".to_string(),
+        );
+        map.insert(
+            "bb94e1c21adab714983cf06622e1de76".to_string(),
+            "EventTopics".to_string(),
+        );
+        map.insert(
+            "f9cce9c888469bb1a0dceaa129672ef8".to_string(),
+            "LastRuntimeUpgrade".to_string(),
+        );
+        map.insert(
+            "ff553b5a9862a516939d82b3d3d8661a".to_string(),
+            "ExecutionPhase".to_string(),
+        );
+        map.insert(
+            "bd2a529379475088d3e29a918cd47872".to_string(),
+            "RandomnessCollectiveFlip".to_string(),
+        );
+        map.insert(
+            "1a39ec767bd5269111e6492a1675702a".to_string(),
+            "RandomMaterial".to_string(),
+        );
+        map.insert(
+            "1cb6f36e027abb2091cfb5110ab5087f".to_string(),
+            "Babe".to_string(),
+        );
+        map.insert(
+            "38316cbf8fa0da822a20ac1c55bf1be3".to_string(),
+            "EpochIndex".to_string(),
+        );
+        map.insert(
+            "5e0621c4869aa60c02be9adcc98a0d1d".to_string(),
+            "Authorities".to_string(),
+        );
+        map.insert(
+            "678711d15ebbceba5cd0cea158e6675a".to_string(),
+            "GenesisSlot".to_string(),
+        );
+        map.insert(
+            "06155b3cd9a8c9e5e9a23fd5dc13a5ed".to_string(),
+            "CurrentSlot".to_string(),
+        );
+        map.insert(
+            "7a414cb008e0e61e46722aa60abdd672".to_string(),
+            "Randomness".to_string(),
+        );
+        map.insert(
+            "7ce678799d3eff024253b90e84927cc6".to_string(),
+            "NextRandomness".to_string(),
+        );
+        map.insert(
+            "66e8f035c8adbe7f1547b43c51e6f8a4".to_string(),
+            "SegmentIndex".to_string(),
+        );
+        map.insert(
+            "b9093659d7a856809757134d2bc86e62".to_string(),
+            "UnderConstruction".to_string(),
+        );
+        map.insert(
+            "fa92de910a7ce2bd58e99729c69727c1".to_string(),
+            "Initialized".to_string(),
+        );
+        map.insert(
+            "0323475657e0890fbdbf66fb24b4649e".to_string(),
+            "Lateness".to_string(),
+        );
+        map.insert(
+            "f0c365c3cf59d671eb72da0e7a4113c4".to_string(),
+            "Timestamp".to_string(),
+        );
+        map.insert(
+            "9f1f0515f462cdcf84e0f1d6045dfcbb".to_string(),
+            "Now".to_string(),
+        );
+        map.insert(
+            "bbd108c4899964f707fdaffb82636065".to_string(),
+            "DidUpdate".to_string(),
+        );
+        map.insert(
+            "1a736d37504c2e3fb73dad160c55b291".to_string(),
+            "Indices".to_string(),
+        );
+        map.insert(
+            "8ee7418a6531173d60d1f6a82d8f4d51".to_string(),
+            "Accounts".to_string(),
+        );
+        map.insert(
+            "3f1467a096bcd71a5b6a0c8155e20810".to_string(),
+            "TransactionPayment".to_string(),
+        );
+        map.insert(
+            "3f2edf3bdf381debe331ab7446addfdc".to_string(),
+            "NextFeeMultiplier".to_string(),
+        );
+        map.insert(
+            "d57bce545fb382c34570e5dfbf338f5e".to_string(),
+            "Authorship".to_string(),
+        );
+        map.insert(
+            "a36180b5cfb9f6541f8849df92a6ec93".to_string(),
+            "Uncles".to_string(),
+        );
+        map.insert(
+            "326d21bc67a4b34023d577585d72bfd7".to_string(),
+            "Author".to_string(),
+        );
+        map.insert(
+            "bddf84c5eb23e6f53af725880d8ffe90".to_string(),
+            "DidSetUncles".to_string(),
+        );
+        map.insert(
+            "d5c41b52a371aa36c9254ce34324f2a5".to_string(),
+            "Offences".to_string(),
+        );
+        map.insert(
+            "b262e9238fa402540c250bc3f5d6188d".to_string(),
+            "Reports".to_string(),
+        );
+        map.insert(
+            "3b996bb988ea8ee15bad3ffd2f68dbda".to_string(),
+            "DeferredOffences".to_string(),
+        );
+        map.insert(
+            "60dc8ef000cdbdc859dd352229ce16fb".to_string(),
+            "ConcurrentReportsIndex".to_string(),
+        );
+        map.insert(
+            "3589c0dac50da6fb3a3611eb32bcd27e".to_string(),
+            "ReportsByKindIndex".to_string(),
+        );
+        map.insert(
+            "cec5070d609dd3497f72bde07fc96ba0".to_string(),
+            "Session".to_string(),
+        );
+        map.insert(
+            "88dcde934c658227ee1dfafcd6e16903".to_string(),
+            "Validators".to_string(),
+        );
+        map.insert(
+            "72763800a36a99fdfc7c10f6415f6ee6".to_string(),
+            "CurrentIndex".to_string(),
+        );
+        map.insert(
+            "9450bfa4b96a3fa7a3c8f40da6bf32e1".to_string(),
+            "QueuedChanged".to_string(),
+        );
+        map.insert(
+            "e0cdd062e6eaf24295ad4ccfc41d4609".to_string(),
+            "QueuedKeys".to_string(),
+        );
+        map.insert(
+            "5a9a74be4a5a7df60b01a6c0326c5e20".to_string(),
+            "DisabledValidators".to_string(),
+        );
+        map.insert(
+            "4c014e6bf8b8c2c011e7290b85696bb3".to_string(),
+            "NextKeys".to_string(),
+        );
+        map.insert(
+            "726380404683fc89e8233450c8aa1950".to_string(),
+            "KeyOwner".to_string(),
+        );
+        map.insert(
+            "f68f425cf5645aacb2ae59b51baed904".to_string(),
+            "FinalityTracker".to_string(),
+        );
+        map.insert(
+            "b97380ce5f4e70fbf9d6b5866eb59527".to_string(),
+            "RecentHints".to_string(),
+        );
+        map.insert(
+            "20d49a14a763e1cbc887acd097f92014".to_string(),
+            "OrderedHints".to_string(),
+        );
+        map.insert(
+            "9b58374218f48eaf5bc23b7b3e7cf08a".to_string(),
+            "Median".to_string(),
+        );
+        map.insert(
+            "b81c33f1b29016d3ff5ac7fb7614c3d3".to_string(),
+            "Update".to_string(),
+        );
+        map.insert(
+            "2371e21684d2fae99bcb4d579242f74a".to_string(),
+            "Grandpa".to_string(),
+        );
+        map.insert(
+            "f39a107f2d8d3854c9aba9b021f43d9c".to_string(),
+            "State".to_string(),
+        );
+        map.insert(
+            "2ff65991b1c915dd6cc8d4825eacfcb4".to_string(),
+            "PendingChange".to_string(),
+        );
+        map.insert(
+            "01d7818126bd9b3074803e91f4c91b59".to_string(),
+            "NextForced".to_string(),
+        );
+        map.insert(
+            "7ddd013461b72c3004f9c0ca3faf9ebe".to_string(),
+            "Stalled".to_string(),
+        );
+        map.insert(
+            "8a2d09463effcc78a22d75b9cb87dffc".to_string(),
+            "CurrentSetId".to_string(),
+        );
+        map.insert(
+            "d47cb8f5328af743ddfb361e7180e7fc".to_string(),
+            "SetIdSession".to_string(),
+        );
+        map.insert(
+            "2b06af9719ac64d755623cda8ddd9b94".to_string(),
+            "ImOnline".to_string(),
+        );
+        map.insert(
+            "8aa1f2c9844f11024c1d204e705a6217".to_string(),
+            "HeartbeatAfter".to_string(),
+        );
+        map.insert(
+            "9f99a2ce711f3a31b2fc05604c93f179".to_string(),
+            "Keys".to_string(),
+        );
+        map.insert(
+            "cc5a1aa6e3716372f36ef103b7e3ae67".to_string(),
+            "ReceivedHeartbeats".to_string(),
+        );
+        map.insert(
+            "b1c371ded9e9c565e89ba783c4d5f5f9".to_string(),
+            "AuthoredBlocks".to_string(),
+        );
+        map.insert(
+            "11f3ba2e1cdd6d62f2ff9b5589e7ff81".to_string(),
+            "Council".to_string(),
+        );
+        map.insert(
+            "88c2f7188c6fdd1dffae2fa0d171f440".to_string(),
+            "Proposals".to_string(),
+        );
+        map.insert(
+            "e9d6db8868a37d79930bc3f7f33950d1".to_string(),
+            "ProposalOf".to_string(),
+        );
+        map.insert(
+            "71cd3068e6118bfb392b798317f63a89".to_string(),
+            "Voting".to_string(),
+        );
+        map.insert(
+            "6254e9d55588784fa2a62b726696e2b1".to_string(),
+            "ProposalCount".to_string(),
+        );
+        map.insert(
+            "ba7fb8745735dc3be2a2c61a72c39e78".to_string(),
+            "Members".to_string(),
+        );
+        map.insert(
+            "cb3136ee16886ac28a54f39e605b387a".to_string(),
+            "Prime".to_string(),
+        );
+        map.insert(
+            "8985776095addd4789fccbce8ca77b23".to_string(),
+            "TechnicalCommittee".to_string(),
+        );
+        map.insert(
+            "492a52699edf49c972c21db794cfcf57".to_string(),
+            "TechnicalMembership".to_string(),
+        );
+        map.insert(
+            "d5e1a2fa16732ce6906189438c0a82c6".to_string(),
+            "Utility".to_string(),
+        );
+        map.insert(
+            "3cd15a3fd6e04e47bee3922dbfa92c8d".to_string(),
+            "Multisigs".to_string(),
+        );
+        map.insert(
+            "2aeddc77fe58c98d50bd37f1b90840f9".to_string(),
+            "Identity".to_string(),
+        );
+        map.insert(
+            "cd7f37317cd20b61e9bd46fab8704714".to_string(),
+            "IdentityOf".to_string(),
+        );
+        map.insert(
+            "43a953ac082e08b6527ce262dbd4abf2".to_string(),
+            "SuperOf".to_string(),
+        );
+        map.insert(
+            "6ee5a0b09e7e9a96219dd66f0f74c37e".to_string(),
+            "SubsOf".to_string(),
+        );
+        map.insert(
+            "1f7f3f3eb1c2a69978da998d19f74ec5".to_string(),
+            "Registrars".to_string(),
+        );
+        map.insert(
+            "426e15054d267946093858132eb537f1".to_string(),
+            "Society".to_string(),
+        );
+        map.insert(
+            "95999521c6c89cd80b677e53ce20f98c".to_string(),
+            "Founder".to_string(),
+        );
+        map.insert(
+            "ad8964373ae14fde6a1b12a2ccb7aebd".to_string(),
+            "Rules".to_string(),
+        );
+        map.insert(
+            "948ece45793d7f15c9c0b9574ddbc665".to_string(),
+            "Candidates".to_string(),
+        );
+        map.insert(
+            "bbf9723cdae80db599c0e53c5a470cd2".to_string(),
+            "SuspendedCandidates".to_string(),
+        );
+        map.insert(
+            "a47a9ff5cd5bf4d848a80a0b1a947dc3".to_string(),
+            "Pot".to_string(),
+        );
+        map.insert(
+            "05fe52c2045750c3c492ccdcf62e2b9c".to_string(),
+            "Head".to_string(),
+        );
+        map.insert(
+            "4961503206762969ef4828521ef92a35".to_string(),
+            "SuspendedMembers".to_string(),
+        );
+        map.insert(
+            "c4f1521904024343c14aea2e016c84d7".to_string(),
+            "Bids".to_string(),
+        );
+        map.insert(
+            "05eef273131bee9ab1033b8db9e5ab8c".to_string(),
+            "Vouching".to_string(),
+        );
+        map.insert(
+            "19f4459916c774a1c3287d8ac99e98b9".to_string(),
+            "Payouts".to_string(),
+        );
+        map.insert(
+            "0da61bea5fc7de17ebdf361b9914e50b".to_string(),
+            "Strikes".to_string(),
+        );
+        map.insert(
+            "b4adc6a1ce4f7cc2e696ed0fd06bd01c".to_string(),
+            "Votes".to_string(),
+        );
+        map.insert(
+            "d3bcf3722b2e2300078c9d1795079f6e".to_string(),
+            "Defender".to_string(),
+        );
+        map.insert(
+            "91ca57b0c4b20b29ae7e99d6201d680c".to_string(),
+            "DefenderVotes".to_string(),
+        );
+        map.insert(
+            "d0b4a3f7631f0c0e761898fe198211de".to_string(),
+            "MaxMembers".to_string(),
+        );
+        map.insert(
+            "a2ce73642c549ae79c14f0a671cf45f9".to_string(),
+            "Recovery".to_string(),
+        );
+        map.insert(
+            "a3f57184ab60571b3be8a355d07be414".to_string(),
+            "Recoverable".to_string(),
+        );
+        map.insert(
+            "dff9094d7baf1e2d9b2e3a4253b096f8".to_string(),
+            "ActiveRecoveries".to_string(),
+        );
+        map.insert(
+            "1809d78346727a0ef58c0fa03bafa323".to_string(),
+            "Proxy".to_string(),
+        );
+        map.insert(
+            "5c0d1176a568c1f92944340dbfed9e9c".to_string(),
+            "Sudo".to_string(),
+        );
+        map.insert(
+            "530ebca703c85910e7164cb7d1c9e47b".to_string(),
+            "Key".to_string(),
+        );
+        map.insert(
+            "481e203dcea218263e3a96ca9e4b1938".to_string(),
+            "Balances".to_string(),
+        );
+        map.insert(
+            "57c875e4cff74148e4628f264b974c80".to_string(),
+            "TotalIssuance".to_string(),
+        );
+        map.insert(
+            "218f26c73add634897550b4003b26bc6".to_string(),
+            "Locks".to_string(),
+        );
+        map.insert(
+            "03a4971484692cd58fa781fd333a2970".to_string(),
+            "Staking".to_string(),
+        );
+        map.insert(
+            "ac0a2cbf8e355f5ea6cb2de8727bfb0c".to_string(),
+            "HistoryDepth".to_string(),
+        );
+        map.insert(
+            "138e71612491192d68deab7e6f563fe1".to_string(),
+            "ValidatorCount".to_string(),
+        );
+        map.insert(
+            "b49a2738eeb30896aacb8b3fb46471bd".to_string(),
+            "MinimumValidatorCount".to_string(),
+        );
+        map.insert(
+            "5579297f4dfb9609e7e4c2ebab9ce40a".to_string(),
+            "Invulnerables".to_string(),
+        );
+        map.insert(
+            "3ed14b45ed20d054f05e37e2542cfe70".to_string(),
+            "Bonded".to_string(),
+        );
+        map.insert(
+            "422adb579f1dbf4f3886c5cfa3bb8cc4".to_string(),
+            "Ledger".to_string(),
+        );
+        map.insert(
+            "9220e172bed316605f73f1ff7b4ade98".to_string(),
+            "Payee".to_string(),
+        );
+        map.insert(
+            "9c6a637f62ae2af1c7e31eed7e96be04".to_string(),
+            "Nominators".to_string(),
+        );
+        map.insert(
+            "0b6a45321efae92aea15e0740ec7afe7".to_string(),
+            "CurrentEra".to_string(),
+        );
+        map.insert(
+            "487df464e44a534ba6b0cbb32407b587".to_string(),
+            "ActiveEra".to_string(),
+        );
+        map.insert(
+            "ad811cd65a470ddc5f1d628ff0550982".to_string(),
+            "ErasStartSessionIndex".to_string(),
+        );
+        map.insert(
+            "8bde0a0ea8864605e3b68ed9cb2da01b".to_string(),
+            "ErasStakers".to_string(),
+        );
+        map.insert(
+            "42982b9d6c7acc99faa9094c912372c2".to_string(),
+            "ErasStakersClipped".to_string(),
+        );
+        map.insert(
+            "682db92dde20a10d96d00ff0e9e221c0".to_string(),
+            "ErasValidatorPrefs".to_string(),
+        );
+        map.insert(
+            "7e6ed2ee507c7b4441d59e4ded44b8a2".to_string(),
+            "ErasValidatorReward".to_string(),
+        );
+        map.insert(
+            "80cc6574281671b299c1727d7ac68cab".to_string(),
+            "ErasRewardPoints".to_string(),
+        );
+        map.insert(
+            "a141c4fe67c2d11f4a10c6aca7a79a04".to_string(),
+            "ErasTotalStake".to_string(),
+        );
+        map.insert(
+            "f7dad0317324aecae8744b87fc95f2f3".to_string(),
+            "ForceEra".to_string(),
+        );
+        map.insert(
+            "c29a0310e1bb45d20cace77ccb62c97d".to_string(),
+            "SlashRewardFraction".to_string(),
+        );
+        map.insert(
+            "28dccb559b95c40168a1b2696581b5a7".to_string(),
+            "CanceledSlashPayout".to_string(),
+        );
+        map.insert(
+            "042824170a5db4381fe3395039cabd24".to_string(),
+            "UnappliedSlashes".to_string(),
+        );
+        map.insert(
+            "ea07de2b8f010516dca3f7ef52f7ac5a".to_string(),
+            "BondedEras".to_string(),
+        );
+        map.insert(
+            "ad6e15ee7bfd5d55eba1012487d3af54".to_string(),
+            "ValidatorSlashInEra".to_string(),
+        );
+        map.insert(
+            "815008e8210b6d6cf701e22e5bf27141".to_string(),
+            "NominatorSlashInEra".to_string(),
+        );
+        map.insert(
+            "ab6a212bc08a5603828f33f90ec4a139".to_string(),
+            "SlashingSpans".to_string(),
+        );
+        map.insert(
+            "e62f6f797ebe9138dfced942977fea50".to_string(),
+            "SpanSlash".to_string(),
+        );
+        map.insert(
+            "605b2c046b5509037f3f158b9741d037".to_string(),
+            "EarliestUnappliedSlash".to_string(),
+        );
+        map.insert(
+            "7e006c26d69c4c97f65648ab815a2744".to_string(),
+            "SnapshotValidators".to_string(),
+        );
+        map.insert(
+            "f7e257c9436fe67e2c4d9d4ced7d454c".to_string(),
+            "SnapshotNominators".to_string(),
+        );
+        map.insert(
+            "506d22b33505b67f525d81bd005b1687".to_string(),
+            "QueuedElected".to_string(),
+        );
+        map.insert(
+            "b3b6930af377ba74f7e8379e44b2c77f".to_string(),
+            "QueuedScore".to_string(),
+        );
+        map.insert(
+            "e1791577e4efcb083fdc3cb21e85b2e4".to_string(),
+            "EraElectionStatus".to_string(),
+        );
+        map.insert(
+            "a3f6dd299ad3afa68580a25a73f6eabf".to_string(),
+            "IsCurrentSessionFinal".to_string(),
+        );
+        map.insert(
+            "ce11fdaa3115ff65bab630e3f5a0cbd3".to_string(),
+            "LivingTime".to_string(),
+        );
+        map.insert(
+            "69a606664fe0a48551119f22a07853f0".to_string(),
+            "PayoutFraction".to_string(),
+        );
+        map.insert(
+            "1ab2669620e457d4fa08f305b84703ed".to_string(),
+            "RingPool".to_string(),
+        );
+        map.insert(
+            "00444b5e05d0712fd694bc34f31213d2".to_string(),
+            "KtonPool".to_string(),
+        );
+        map.insert(
+            "603d66d8a116e9e270a03f7f97aca386".to_string(),
+            "ElectionsPhragmen".to_string(),
+        );
+        map.insert(
+            "40982df579bdf1315224f41e5f482063".to_string(),
+            "RunnersUp".to_string(),
+        );
+        map.insert(
+            "7657ad2ff3a6742e1071bbb898ce5431".to_string(),
+            "ElectionRounds".to_string(),
+        );
+        map.insert(
+            "2beee1f11d65734e4b23a791ae63d897".to_string(),
+            "Claims".to_string(),
+        );
+        map.insert(
+            "ae15665727371f0abcfff82102476fe6".to_string(),
+            "ClaimsFromEth".to_string(),
+        );
+        map.insert(
+            "1364576f395d9dceb495ba4b73e5b44d".to_string(),
+            "ClaimsFromTron".to_string(),
+        );
+        map.insert(
+            "f43d6436dec51f09c3b71287a8fc9d48".to_string(),
+            "Total".to_string(),
+        );
+        map.insert(
+            "327473e57e0ba6cc39e52adc79597a77".to_string(),
+            "Treasury".to_string(),
+        );
+        map.insert(
+            "3c9c1284130706f5aea0c8b3d4c54d89".to_string(),
+            "Approvals".to_string(),
+        );
+        map.insert(
+            "2c5de123c468aef7f3ac2ab3a76f87ce".to_string(),
+            "Tips".to_string(),
+        );
+        map.insert(
+            "d834d1db4313872258a93b9fc45d488b".to_string(),
+            "Reasons".to_string(),
+        );
+
+        let key_folder_reader = if let Ok(f) = env::var("SSI_KEY_FOLDER") {
+            read_dir(Path::new(&f)).expect("Can not read SSI_KEY_FOLDER")
+        } else if let Ok(r) = read_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("key-data")) {
+            r
+        } else {
+            read_dir(Path::new(".")).expect("Can not read current folder")
+        };
+
+        for entry in key_folder_reader {
+            if entry.is_err() {
+                continue;
+            }
+            let path = entry.unwrap().path();
+            if let Some(ext) = path.extension() {
+                if ext == "xx" {
+                    info!("load twox 128 hash key file: {:?}", path);
+                    if let Ok(f) = File::open(path.clone()) {
+                        for line in BufReader::new(f).lines() {
+                            if let Ok(key) = line {
+                                let h = hex::encode(twox_128(key.trim().as_bytes()));
+                                map.insert(h, key.trim().to_string());
+                            }
+                        }
+                    } else {
+                        eprintln!("fail to read key file: {:?}", path);
+                    }
+                }
+            }
+        }
+
+        map
+    };
+    pub static ref BLAKE2_MAP: HashMap<String, String> = {
+        let mut map = HashMap::new();
+        let key_folder_reader = if let Ok(f) = env::var("SSI_KEY_FOLDER") {
+            read_dir(Path::new(&f)).expect("Can not read SSI_KEY_FOLDER")
+        } else if let Ok(r) = read_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("key-data")) {
+            r
+        } else {
+            read_dir(Path::new(".")).expect("Can not read current folder")
+        };
+        for entry in key_folder_reader {
+            if entry.is_err() {
+                continue;
+            }
+            let path = entry.unwrap().path();
+            if let Some(ext) = path.extension() {
+                if ext == "b2" {
+                    info!("load blake2 128 hash key file: {:?}", path);
+                    if let Ok(f) = File::open(path.clone()) {
+                        for line in BufReader::new(f).lines() {
+                            if let Ok(key) = line {
+                                let h = hex::encode(blake2_128(key.trim().as_bytes()));
+                                map.insert(h, key.trim().to_string());
+                            }
+                        }
+                    } else {
+                        eprintln!("fail to read key file: {:?}", path);
+                    }
+                }
+            }
+        }
+        map
+    };
+}
