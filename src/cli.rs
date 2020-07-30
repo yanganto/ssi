@@ -1,14 +1,6 @@
-// Comand Line Handle
-
 pub use clap::ArgMatches;
 use clap::{App, Arg};
 use std::ffi::OsString;
-
-// use crate::character_map::SYMBOL_MAP;
-// use crate::errors::*;
-// use crate::extractor::SentenceExtractorBuilder;
-// use crate::loader::load;
-// use crate::loader::load_file_names;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 

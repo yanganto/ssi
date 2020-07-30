@@ -19,7 +19,6 @@ static LOGGER: Logger = Logger;
 
 fn main() {
     let matches = parse_args(args_os());
-
     init_logger(&LOGGER, matches.value_of("log").unwrap_or("error"));
 
     let f = if matches.is_present("decode storage key") {
@@ -28,10 +27,13 @@ fn main() {
         } else {
             stream_inspect_app
         }
-    } else if matches.is_present("root hash diff") {
+    } else if matches.is_present("root hash diff") && matches.is_present("path") {
         db_diff_app
-    } else {
+    } else if matches.is_present("path") {
         db_inspect_app
+    } else {
+        println!("uncorrect usage: -h or --help to learn more");
+        return;
     };
 
     if let Err(e) = f(matches) {
