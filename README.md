@@ -100,6 +100,16 @@ ssi -d <file path>
 
 ![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/log_demo.png)
 
+### Load key files
+The tool will load the keyword files before inspection, the key word files may place in one of following folders.  
+- The folder set in environment variable `SSI_KEY_FOLDER` 
+- The current folder
+- The project key-data folder
+
+The keyword files will having `.xx` or `.b2` extensions as the sample place in `key-data`.  
+- The twox hash keys (used in pallet name, field in storage) can save as `.xx` extension.
+- The blake2 hash keys (used in keys) can save as `.b2` extension.
+
 
 ## Solutions & How it works
 
