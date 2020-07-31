@@ -110,26 +110,32 @@ The keyword files will having `.xx` or `.b2` extensions as the sample place in `
 - The twox hash keys (used in pallet name, field in storage) can save as `.xx` extension.
 - The blake2 hash keys (used in keys) can save as `.b2` extension.
 
+### Diff the data between blocks 
+By providing the two state root hash, show the data difference of two state.
+
+```
+cargo run -r 0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d -R 0x940a55c41ce61b2d771e82f8a6c6f4939a712a644502f5efa7c59afea0a3a67e -P System -F Account -s ./db
+```
 
 ## Solutions & How it works
 
 ```
-|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Layer        | The Info extracted from the layer                                                                                                                  |
-| ==========   | ====================================================================================================================                               |
-| Runtime      | -> Calculated: Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID                                                                 |
-|              | => 26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9 ++ Hash(Account_ID) ++ Account_ID                                              |
-|              | * Need to read the definition in decl_stroage! of system pallet                                                                                    |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend      | -> Customized: RPC to get state root hash                                                                                                          |
-|              | * Modify the source code of target chain to expose the state root hash                                                                             |
-|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Trie DB      | -> Calculateed node position base on following picture                                                                                             |
-|              |                                                                                                                                                    |
-|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Rocks DB     | -> use state root hash -> get & decodde state root node -> get & decode childern -> get value                                                      |
-|              |                                                                                                                                                    |
-|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+|--------------|-------------------------------------------------------------------------------------------------------|
+| Layer        | The Info extracted from the layer                                                                     |
+| ============ | ===================================================================================================== |
+| Runtime      | -> Calculated: Hash("System") ++ Hahs("Account") ++ Hash(Account_ID) ++ Account_ID                    |
+|              | => 26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9 ++ Hash(Account_ID) ++ Account_ID |
+|              | * Need to read the definition in decl_stroage! of system pallet                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------|
+| Backend      | -> Customized: RPC to get state root hash                                                             |
+|              | * Modify the source code of target chain to expose the state root hash                                |
+|--------------|-------------------------------------------------------------------------------------------------------|
+| Trie DB      | -> Calculateed node position base on following picture                                                |
+|              |                                                                                                       |
+|--------------|-------------------------------------------------------------------------------------------------------|
+| Rocks DB     | -> use state root hash -> get & decodde state root node -> get & decode childern -> get value         |
+|              |                                                                                                       |
+|--------------|-------------------------------------------------------------------------------------------------------|
 
 ```
 
@@ -138,7 +144,37 @@ The keyword files will having `.xx` or `.b2` extensions as the sample place in `
 ![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/trie.png)
 
 
-## Important Reference
+## Things About Developing
+There are two approach to monitor and diff the data changing.  
+- one is every trie nodes and get the difference (This is current implementation)
+- the other is to expose the chain when the block finalized (under researching)
+
+The former takes more computing resource, and it is suitable for any substrate based blockchain,
+and also it can be used for any db snapshot.
+
+The latter is much efficiently, but need modify some of source code on target blockchain.
+Besides, the node of network may need to be alive to push out the information.
+
+### Action Items
+- [ ] Update the trie version, 
+  - There is issue when this project initialized, and it is fixed now.
+  - related [issue](https://github.com/paritytech/trie/issues/95)
+- [ ] Check the difference between NodeHandlePlane
+  - There ate two kind of NodeHandler, Hash and Inline
+  - Currently, we treat theses Handler in the same way.
+  - ref [code](https://github.com/paritytech/trie/blob/master/trie-db/src/node.rs#L30)
+- [ ] Automatically getting the root hash
+  - RPC `chain_getHeader` provides root hash from block hash
+  - So it will need another RPC to transfer the block number to block hash
+- [ ] Data decoding
+  - Decoding data if type info is provided
+- [ ] trim the dependency and make it slim
+- [ ] Refactor the tool
+  - [ ] shrink the db connection. The node data fetching is used different db connection
+  - [ ] some unwrap are not correctly handled
+- [ ] Tracing ChangesTrie 
+
+### Important Reference
 Before tracing, there are articles explaning the keys in substrate.
 - https://www.shawntabrizi.com/substrate/transparent-keys-in-substrate/
 - https://www.shawntabrizi.com/substrate/substrate-storage-deep-dive/
@@ -164,6 +200,7 @@ Before tracing, there are articles explaning the keys in substrate.
 | primitives/trie           | client/service, client/api, client/executor, client/block-builder        |                                    |
 |                           | frame/session                                                            |                                    |
 |                           | primitives/io, primitives/state-machine                                  |                                    |
+|---------------------------|--------------------------------------------------------------------------|------------------------------------|
 ```
 
 
@@ -292,9 +329,7 @@ The raw data get from the state root hash #50
 128,
 129, 101, 66, 162, 246, 165, 217, 92, 249, 6, 252, 250, 25, 216, 48, 38, 83, 144, 124, 58, 177, 32, 205, 61, 138, 219, 219, 23, 15, 86, 157, 170,
 128,
-86, 19, 59, 211, 244,
-128,
-21, 23, 250, 142, 131, 23, 178, 43, 217, 200, 158, 181, 223, 190, 119, 217, 26, 9, 179, 225, 71, 97, 160, 254, 75, 108
+86, 19, 59, 211, 244, 128, 21, 23, 250, 142, 131, 23, 178, 43, 217, 200, 158, 181, 223, 190, 119, 217, 26, 9, 179, 225, 71, 97, 160, 254, 75, 108
 ]
 
 Here is the decoded output, there are 6 child node have data
@@ -310,33 +345,9 @@ Here is the decoded output, there are 6 child node have data
 == child: Hash(169..201) (240) [160, 117, 69, 22, 65, 224, 115, 49, 4, 235, 92, 183, 242, 80, 47, 241, 125, 66, 246, 68, 19, 116, 151, 54, 185, 234, 44, 248, 13, 22, 45, 193]
 ```
 
-### Possible Prefix
-| Digtail | Hex | Meaning |
-|---------|-----|---------|
-| 32      | 20  |         |
-| 48      | 30  |         |
-| 80      | 50  |         |
-| 176     | B0  |         |
-| 192     | C0  |         |
-| 240     | F0  |         |
-
-### Conclusion
-To get things in the db and by pass the RPC, following parameters are needed:
-- state trie root hash, extrinsics root hash
-- NibbleSlice struct, which is maded from key
-
-## RPC Calls for Root Hash
-The reading the DB and inspect the data without less substrate dependency may be possible.  
-As aforementioned, the root hash is needed, and can be exposed by RPC.
-
-Here is the [customized substrate node-template](https://github.com/yanganto/substrate-node-template/tree/expose-ext-root) with two RPC calls, `state_queryExtrinsicsRoot` and `state_queryStateRoot`, to get the root hash of current block or specific blocks.
-Following is the RPC call with curl command to help you get the root hash.
-- ```curl -X POST -H "Content-Type: application/json"  --data '{"id":6,"jsonrpc":"2.0","method":"state_queryStateRoot","params":[]}' 127.0.0.1:9933```
-- ```curl -X POST -H "Content-Type: application/json"  --data '{"id":6,"jsonrpc":"2.0","method":"state_queryExtrinsicsRoot","params":[]}' 127.0.0.1:9933```
-
 ## Storage Parameters in RockDB
 ### Column Family
-The state root hash is store as a key in Column Family `col1`and the column family meanings are shown as following source code in Substrate.
+The state root hash is store as a key in Column Family `col1` and the column family meanings are shown as following source code in Substrate.
 
 ```rust
 pub(crate) mod columns {
@@ -379,3 +390,22 @@ The db is generated by [substrate-node-template](https://github.com/yanganto/sub
 - The root hashs in block # 50
   - state root hash: "0x3b559d574c4a9f13e55d0256655f0f71a70a703766226f1080f80022e39c057d"
   - extrinsics root hash: "0x2772dcca7b706ca5c9692cb02e373d667ab269ea9085eb55e6900584b7c2c682"
+
+### Tracing the Trie Changes
+- state RPC export here
+  - [trait ChainApi](https://github.com/paritytech/substrate/blob/master/client/rpc-api/src/chain/mod.rs#L34)
+    - `#[rpc(name = "chain_getHeader")] fn header(&self, hash: Option<Hash>) -> FutureResult<Option<Header>>;`
+- The `state_root` is including in Header
+  - [trait Header](https://github.com/paritytech/substrate/blob/master/primitives/runtime/src/traits.rs#L488)
+- Change Trie is a trie built of { storage key => extrinsics } pairs
+  - [`mod change_trie`](https://github.com/paritytech/substrate/blob/master/primitives/state-machine/src/changes_trie/mod.rs#L20)
+- The change trie is enabled when `collect_extrinsics` of OverlayedChanges is true
+  - [struct OverlayedChanges](https://github.com/paritytech/substrate/blob/master/primitives/state-machine/src/overlayed_changes/mod.rs#L56)
+- the `extrinsic_index` of Overlay Change shows the changed extrinsic
+- The change trie is build when [fn call](https://github.com/paritytech/substrate/blob/master/client/service/src/client/call_executor.rs#L82) of `call_executor` execute
+- The change trie is build by [`changes_tries_state_at_block`](https://github.com/paritytech/substrate/blob/master/client/api/src/backend.rs#L520), input parameters as following
+  - `block_id`(required)
+  - `may_storage`(required, if we want to get the `chainge_tries` else the return will be None)
+- There is a method [`set_collect_extrinsics`](https://github.com/paritytech/substrate/blob/master/primitives/state-machine/src/overlayed_changes/mod.rs#L166) for OverlayedChanges
+  - It is enabled if `self.changes_trie_state.is_some()` (self is StateMachine) in [`execute_using_consensus_failure_handler`](https://github.com/paritytech/substrate/blob/master/primitives/state-machine/src/lib.rs#L431)
+
