@@ -1,5 +1,6 @@
 /// Storage
-/// implement import trait to read the storage
+/// implement import trait to read the storage,
+/// such that this tool can ultilize the TireNodeIterate
 use hash_db::{AsHashDB, HashDB, HashDBRef, Hasher as HashDBHasher, Prefix};
 use rocksdb::{IteratorMode, Options, DB};
 use sp_trie::node_codec::NodeCodec;
@@ -221,6 +222,7 @@ pub fn raw_query(db: &DB, cfs: &[&str], prefix: Prefix, node_key: [u8; 32]) -> O
     None
 }
 
+/// Helper function for char to children nodes index
 pub fn map_char_to_pos(c: char) -> usize {
     match c {
         '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
@@ -236,6 +238,7 @@ pub fn map_char_to_pos(c: char) -> usize {
     }
 }
 
+/// Helper function for children nodes index to char
 pub fn map_pos_to_char(p: usize) -> char {
     match p {
         0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 => format!("{}", p).chars().next().unwrap(),
@@ -245,7 +248,6 @@ pub fn map_pos_to_char(p: usize) -> char {
         13 => 'd',
         14 => 'e',
         15 => 'f',
-        16 => '.', // not for input
         _ => panic!("hex string uncorrect"),
     }
 }

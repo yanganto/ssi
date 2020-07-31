@@ -1,3 +1,5 @@
+/// Handle the options and arguments
+///
 pub use clap::ArgMatches;
 use clap::{App, Arg};
 use std::ffi::OsString;

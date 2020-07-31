@@ -1,3 +1,5 @@
+/// Inspect the storage key in any logs
+/// and provide the sementic result
 use std::fs::File;
 use std::io::{self, BufRead, Read};
 
@@ -11,6 +13,7 @@ use crate::logger::debug;
 
 static HEXAL_LITERAL_FORMAT: &str = r#"[0-9a-f]{32,}"#;
 
+/// The Input is an abstract structor to provide the text lines from a file or standard input
 struct Input<'a> {
     source: Box<dyn BufRead + 'a>,
 }

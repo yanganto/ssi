@@ -1,5 +1,13 @@
 /// Logger
 /// Customized logger
+///
+/// The log is classified into following level
+/// - `error` log the unexpect behavior cause by user input
+/// - `warn` log the unexpect db struct
+/// - `info` log the information about the trie node
+/// - `debug` log the tracing trie operation
+/// - `trace` log the get/contain operations in DB
+///
 use colored::*;
 pub use log::{debug, error, info, trace, warn, Level};
 use log::{LevelFilter, Metadata, Record};

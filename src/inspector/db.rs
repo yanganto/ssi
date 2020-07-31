@@ -1,3 +1,6 @@
+/// Inspect the TrieNodes in the DB
+///
+/// Trace the the storage key in the Trie, and list the exactly trie node or the subtrie nodes
 use std::collections::HashMap;
 use std::ops::Range;
 
@@ -22,11 +25,20 @@ type Data = (Vec<u8>, bool);
 #[derive(Debug)]
 enum NodeChangeStatus {
     Insert,
+    // There is may not realy deletion in KVDB, but the node is not recorded in Tire structure,
+    // user can not query the data throught Trie, and the node will be deemed as Deleted
     Delete,
     Modify,
 }
 
-/// the (diff data, diff node state)
+/// The (diff data, diff node state)
+/// If the data lenght is not the same, the diff data will record all the nore data as positive
+/// bytes.
+///
+/// If the data length is the same,
+/// the byte with 0 means the data not change,
+/// and the byte with positive value means the data is inserted
+/// and the byte with negative value means the data is deleted
 type DiffData = (Vec<i16>, NodeChangeStatus);
 
 fn parse_child_hash(c: NodeHandlePlan, data: &[u8]) -> Vec<u8> {
@@ -61,6 +73,7 @@ fn pretty_print(prefix: &str, map: HashMap<Vec<u8>, Vec<usize>>) -> String {
     out
 }
 
+/// Print the output as JSON format
 fn json_output(output: Vec<(String, Data)>, summary: bool, prefix: &str) -> String {
     let mut out = String::from("[");
     if !output.is_empty() {
@@ -96,6 +109,7 @@ fn json_output(output: Vec<(String, Data)>, summary: bool, prefix: &str) -> Stri
     out
 }
 
+/// Print the difference as JSON format
 fn json_diff(output: Vec<(String, DiffData)>, summary: bool, prefix: &str) -> String {
     let mut out = String::from("[");
     if !output.is_empty() {

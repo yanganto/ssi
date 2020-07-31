@@ -1,3 +1,9 @@
+/// Inspector module collects apps to inspect the encoding data
+///
+/// - stream_inspect_app: read file and inspect the storage key to sematic key
+/// - db_inspect_app: inspect db and subtrie show or sumary the data
+/// - db_diff_app: insepct the two different state of data
+///
 use sp_core::hashing::twox_128;
 
 use crate::cli::ArgMatches;
