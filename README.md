@@ -138,12 +138,27 @@ The keyword files will having `.xx` or `.b2` extensions as the sample place in `
 ![snapshop](https://raw.githubusercontent.com/yanganto/ssi/master/trie.png)
 
 
-## Important Reference
+## Things About Developing
+
+### Action Items
+- [] Update the trie version, 
+  - There is issue when this project initialized, and it is fixed now.
+  - related [issue](https://github.com/paritytech/trie/issues/95)
+- [] Check the difference between NodeHandlePlane
+  - There ate two kind of NodeHandler, Hash and Inline
+  - Currently, we treat theses Handler in the same way.
+  - ref [code](https://github.com/paritytech/trie/blob/master/trie-db/src/node.rs#L30)
+- [] Automatically getting the root hash
+- [] Expose ChangesTrie in substrate
+  - It is easy and from the oringinal to find out the extrinsics data changing
+  - try to find out a way to get the change trie of a active node
+
+### Important Reference
 Before tracing, there are articles explaning the keys in substrate.
 - https://www.shawntabrizi.com/substrate/transparent-keys-in-substrate/
 - https://www.shawntabrizi.com/substrate/substrate-storage-deep-dive/
 
-## Dependency Analysis
+### Dependency Analysis
 
 ```
 |---------------------------|--------------------------------------------------------------------------|------------------------------------|
@@ -167,7 +182,7 @@ Before tracing, there are articles explaning the keys in substrate.
 ```
 
 
-### Storage path
+### Tracing Storage path
 - On chain side: `frames` -> `frame/support` -> `sp-statemachine` -> `primitives/storage`, `trie-db`, `trie-root`
 - On client side: `client/api` -> `primitives/database` -> `kvdb`
 - `frame/support` handle the **key** generation
