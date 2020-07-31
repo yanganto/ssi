@@ -29,6 +29,7 @@ enum NodeChangeStatus {
     // user can not query the data throught Trie, and the node will be deemed as Deleted
     Delete,
     Modify,
+    Unchanged,
 }
 
 /// The (diff data, diff node state)
@@ -412,8 +413,18 @@ fn get_subtrie_node(
                             break;
                         }
                     }
-                    NodePlan::NibbledBranch { .. } => {
-                        panic!("unreachable by design");
+                    NodePlan::NibbledBranch { children, .. } => {
+                        if including_children {
+                            for (idx, child) in children.iter().enumerate() {
+                                if let Some(c) = child {
+                                    children_hash_to_path
+                                        .insert(parse_child_hash(c.clone(), &data), vec![idx]);
+                                }
+                            }
+                        } else {
+                            error!("Get the last node but it is branch");
+                            break;
+                        }
                     }
                     NodePlan::Extension { partial, child } => {
                         info!("Get the last node, and it is extension");
@@ -632,7 +643,7 @@ pub fn db_diff_app(matches: ArgMatches) -> Result<(), Error> {
         if origin.contains_key(k) {
             let origin_value = origin.get(k).unwrap();
             if origin_value.0.len() == v.0.len() {
-                let mut has_diff = false;
+                let mut node_change_status = NodeChangeStatus::Unchanged;
                 let diff = origin_value
                     .0
                     .iter()
@@ -641,14 +652,12 @@ pub fn db_diff_app(matches: ArgMatches) -> Result<(), Error> {
                         if a == b {
                             0
                         } else {
-                            has_diff = true;
+                            node_change_status = NodeChangeStatus::Modify;
                             *a as i16
                         }
                     })
                     .collect::<Vec<i16>>();
-                if has_diff {
-                    output.push((k.clone(), (diff, NodeChangeStatus::Modify)));
-                }
+                output.push((k.clone(), (diff, node_change_status)));
                 continue;
             }
         }
